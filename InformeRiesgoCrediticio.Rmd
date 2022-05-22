@@ -28,16 +28,13 @@ df <- subset(df, select = c(-tot_coll_amt, -tot_cur_bal, -total_rev_hi_lim))
 # Solo tienen valores en 0
 df <- subset(df, select = c(-collections_12_mths_ex_med, -acc_now_delinq, 
                             -pymnt_plan, -term))
-
-# Valores lógicos se convierten a enteros
-df$incumpla <- as.integer(df$incumpla == TRUE)
 ```
 
 ## Separación de datos númericos y categóricos
 ```{r}
-df_num <- subset(df, select = c(-sub_grade, -home_ownership,
-                                          -verification_status, -purpose, -addr_state,
-                                          -initial_list_status))
+df_num <- subset(df, select = c(-grade, -home_ownership,
+                                          -verification_status, -purpose, 
+                                          -addr_state, -initial_list_status))
 ```
 
 ## Agrupar variables númericas en el dataframe
@@ -46,7 +43,7 @@ df_num <- subset(df, select = c(-sub_grade, -home_ownership,
 # Ver los tipos de datos del df
 sapply(df_num, class)
 
-bins <- woebin(df_num, y = "incumpla", method = "tree")
+bins <- woebin(df_num, y = "good_bad", method = "tree")
 
 options(digits = 3)
 
@@ -76,7 +73,7 @@ df <- mutate_if(df, sapply(df, is.logical), as.factor)
 
 ## División de los datos
 ```{r, include=FALSE}
-tv <- split_df(df, y = "incumpla", ratio = c(0.75, 0.25),
+tv <- split_df(df, y = "good_bad", ratio = c(0.75, 0.25),
                seed = 42, no_dfs = 2, name_dfs = c("train", "valid"))
 
 train <- tv$train
@@ -87,17 +84,15 @@ valid <- tv$valid
 ## Análisis de WOEs
 
 ```{r, include=FALSE}
-
-
-woe_model <- woe(as.factor(train$incumpla) ~ ., data = train)
+woe_model <- woe(as.factor(train$good_bad) ~ ., data = train)
 woe_model$xnew
 
-train_woes <- data.frame(incumpla = train$incumpla, 
+train_woes <- data.frame(good_bad = train$good_bad, 
                          woe_model$xnew)
 
-valid_woes <- predict(woe_model, subset(valid, select = c(-incumpla)))
+valid_woes <- predict(woe_model, subset(valid, select = c(-good_bad)))
 valid_woes
-# model <- glm(incumpla ~ ., data = train_woes, family = binomial)
+# model <- glm(good_bad ~ ., data = train_woes, family = binomial)
 summary(model)
 ```
 
