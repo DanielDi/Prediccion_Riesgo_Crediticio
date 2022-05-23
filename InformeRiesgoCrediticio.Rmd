@@ -2,7 +2,9 @@
 title: "InformeRiesgoCrediticio"
 author: "Brayan Ortiz, Juan Peña, Thalea Hesse, Juan Falcon, Daniel Espinal"
 date: "`r Sys.Date()`"
-output: html_document
+output:
+  pdf_document: default
+  html_document: default
 ---
 
 ```{r setup, include=FALSE}
@@ -16,6 +18,7 @@ library(klaR)
 library(riskR)
 library(corrplot)
 library(creditmodel)
+library(pROC)
 
 knitr::opts_chunk$set(echo = TRUE)
 ```
@@ -32,267 +35,109 @@ df <- subset(df, select = c(-tot_coll_amt, -tot_cur_bal, -total_rev_hi_lim))
 # Solo tienen valores en 0
 df <- subset(df, select = c(-collections_12_mths_ex_med, -acc_now_delinq, 
                             -pymnt_plan, -term))
-```
-
-## Selección de variables
-
-Se decidió realizar la selección de variables desde el dataframe general para tenerlas
-listas cuando se haga la separación en entrenamiento y prueba. 
-
-## Prueba total
-```{r, include=FALSE}
-df_num <- subset(df, select = c(-grade, -home_ownership,
-                                          -verification_status, -purpose, 
-                                          -addr_state, -initial_list_status))
-
-bins_df <- woebin(df, y = "good_bad", method = "tree")
-
-df_num_bins <- woebin_ply(df, bins_df, to = "bin")
-df_num_woes <- woebin_ply(df, bins_df)
-
-df_model <- glm(good_bad ~ ., family = binomial(), data = df_num_woes)
-
-df_model_card <- scorecard(bins_df, df_model)
-
-iv_list <- feature_selector(dat_train = df_num_woes, dat_test = NULL, 
-                            target = "good_bad", filter = "IV", iv_cp = 0.02,
-                            vars_name = FALSE)
-iv_list
-
-# Selecciona las variables basadas en la correlación y el iv_list
-# fast_high_cor_filter(dat = df_num_woes, com_list = iv_list, p = 0.15, cor_class = TRUE, vars_name = FALSE)
-
-
-score_val <- scorecard_ply(df, df_model_card, only_total_score = FALSE)
-score_val
 
 ```
 
+## División de los datos en Entrenamiento y Prueba
 
-## División de los datos
 ```{r, include=FALSE}
+
 tv <- split_df(df, y = "good_bad", ratio = c(0.75, 0.25),
                seed = 42, no_dfs = 2, name_dfs = c("train", "valid"))
 
 train <- tv$train
 valid <- tv$valid
+
 ```
 
-## Separación de datos númericos
-```{r}
-train_num <- subset(train, select = c(-grade, -home_ownership,
-                                          -verification_status, -purpose, 
-                                          -addr_state, -initial_list_status))
-```
-
-## Agrupar variables númericas en el dataframe
+## Selección de variables predictoras
 
 ```{r, include=FALSE}
-# Ver los tipos de datos del df
-sapply(train_num, class)
 
-bins <- woebin(train_num, y = "good_bad", method = "tree")
+# Agrupa los datos en bins
+bins <- woebin(train, y = "good_bad", method = "tree")
 
-options(digits = 3)
+# Aplica los bins al dataset train
+train_bins <- woebin_ply(train, bins, to = "bin")
+train_woes <- woebin_ply(train, bins)
 
-# Muestra los bins de la variable X: bins$X
-bins$loan_amnt[, c(2, 4, 5, 6, 7, 8)]
-my_card <- scorecard(bins_var, model)
-# Visualización de los bins de la variable X
-woebin_plot(bins, x = "loan_amnt", line_value = "woe")
-```
+# Aplica los bins al dataset valid
+valid_bins <- woebin_ply(valid, bins, to = "bin")
+valid_woes <- woebin_ply(valid, bins)
 
-## Aplicar la agrupación para los datos nuevos
-
-```{r, include=FALSE}
-train_num_bins <- woebin_ply(train_num, bins, to = "bin")
-```
-
-## Convertir de datos
-
-```{r}
-# Datos númericos -> factores
-train_num_bins <- mutate_if(train_num_bins, sapply(train_num_bins, is.character), as.factor)
-
-# Datos categóricos -> factores
-train_num_bins <- mutate_if(train_num_bins, sapply(train_num_bins, is.integer), as.factor)
-
-# Datos lógicos -> factores
-train_num_bins <- mutate_if(train_num_bins, sapply(train_num_bins, is.logical), as.factor)
-```
-
-## Análisis de WOEs
-
-```{r, include=FALSE}
-woe_model <- woe(train_num_bins$good_bad ~ ., data = train_num_bins)
-woe_model$xnew
-
-woe_model$woe$home_ownership
-train_woes <- data.frame(good_bad = train_num_bins$good_bad, 
-                         woe_model$xnew)
-
-#valid_woes <- predict(woe_model, subset(valid, select = c(-good_bad)))
-```
-
-```{r, include=FALSE}
-iv_list <- feature_selector(dat_train = train_woes, dat_test = NULL, 
+iv_vars <- feature_selector(dat_train = train_woes, dat_test = NULL, 
                             target = "good_bad", filter = "IV", iv_cp = 0.02,
                             vars_name = FALSE)
-iv_list
 
+var_names <- sub("_woe", "", iv_vars$Feature)
+var_names
 ```
 
-## Selección de Variables Predictoras
-
+## Filtrar los dataframes con las nuevas variables
 ```{r, include=FALSE}
-# TODO: addr_state & home_ownership no tienen valores negativos
 
-IVs <- as.list(woe_model$IV)
+train <- subset(train, select = append(var_names, "good_bad"))
+train_bins <- subset(train_bins, select = append(paste(var_names, "_bin", sep=""), "good_bad"))
+train_woes <- subset(train_woes, select = append(paste(var_names, "_woe", sep=""), "good_bad"))
+# bins <- woebin(train, y = "good_bad", method = "tree")
 
-# Método IV
-selected_vars <- IVs[IVs > 0.02 & IVs < 2]
-
-col_names <- paste("woe_", names(selected_vars), sep = "")
-
-df_selected_vars <- subset(train_woes, select = col_names)
-names(df_selected_vars) <- substr(names(df_selected_vars), 5, 50)
-names(df_selected_vars) <- gsub("_bin","",names(df_selected_vars))
+valid <- subset(valid, select = append(var_names, "good_bad"))
+valid_bins <- subset(valid_bins, select = append(paste(var_names, "_bin", sep=""), "good_bad"))
+valid_woes <- subset(valid_woes, select = append(paste(var_names, "_woe", sep=""), "good_bad"))
 ```
 
+## Análisis de Agrupamiento en los datos de Entrenamiento
 
-## Correlaciones entre variables seleccionadas
+
 ```{r, include=FALSE}
 
-train_woes <- mutate_if(train_woes, sapply(train_num_bins, is.factor), as.numeric)
-corr_train = cor(df_selected_vars)
+options(digits = 4)
+bins$int_rate[, c(2, 4, 5, 6, 7, 8)]
+
+# Visualización de los bins de la variable int_rate
+woebin_plot(bins, x = "int_rate", line_value = "woe")
+```
+
+## Correlaciones entre variables predictoras
+```{r, include=FALSE}
+names(train_woes) <- sub("_woe", "", names(train_woes))
+corr_train = cor(train_woes)
 corrplot(corr_train)
 ```
 
 
 ## Modelo glm
-```{r, include=FALSE}
-
-train_woes$good_bad[train_woes$good_bad == 1] <- 0
-train_woes$good_bad[train_woes$good_bad == 2] <- 1
-
-df_selected_vars$good_bad <- train_woes$good_bad
-
-model <- glm(good_bad ~ ., data = df_selected_vars)
-
-summary(model)
-
-# score_card_model <- scorecard2(bins, train_num, y = 'good_bad')
-x <- paste(names(df_selected_vars[-6]), "_bin", sep = "")
-score_card_model <- scorecard(subset(train_num_bins, select = x), model)
-# score_predict <- scorecard_ply(train, score_card_model)
-
-
-x <- names(df_selected_vars)
-x  
-
-
-score_predicted = scorecard_ply(subset(train_num, select = x), score_card_model)
-```
-
-
-
-
-
-## ANTES
-
-
-
-
-## Conjunto de prueba y entrenamiento
-```{r setup, include=FALSE}
-set.seed(27042022) # se fija por reproducibilidad
-
-datos1 <- sample(2, nrow(df2),
-                   replace = T,
-                   prob = c(0.75, 0.25))
-train <- df2[datos1 == 1,]
-test <- df2[datos1 == 2,]
-
-train$incumpla[train$incumpla == TRUE] <- 1
-train$incumpla[train$incumpla == FALSE] <- 0
-
-test$incumpla[test$incumpla == TRUE] <- 1
-test$incumpla[test$incumpla == FALSE] <- 0
-```
-
-# Selección de variables
-```{r setup, include=FALSE}
-# Calculate information values: 
-info_values <- iv(train, y = "incumpla", positive = "incumpla|0")
-```
-
-```{r setup, include=FALSE}
-info_values %>% 
-  arrange(info_value) %>% 
-  mutate(info_value = round(info_value, 3), variable = factor(variable, levels = variable)) %>% 
-  ggplot(aes(variable, info_value)) + 
-  geom_col(fill = "#377eb8") + 
-  coord_flip() + 
-  geom_text(aes(label = info_value), hjust = -.1, size = 5, color = "#377eb8") + 
-  labs(title = "Figure 7: Information Value (IV) for All Variables", 
-       x = NULL, y = "Information Value (IV)") + 
-  scale_y_continuous(expand = c(0, 0), limits = c(0, 0.9)) + 
-  theme(panel.grid.major.y = element_blank()) + 
-  theme(plot.margin = unit(c(1, 1, 1, 1), "cm"))
-```
-
-```{r setup, include=FALSE}
-variables_selected_iv <- info_values %>% 
-  filter(info_value >= 0.02) %>% 
-  pull(1)
-
-df_train_iv <- train %>% select(variables_selected_iv, "incumpla")
-
-bins_var <- woebin(df_train_iv, y = "incumpla", positive = "incumpla|0")
-
-df_train_woe2 <- woebin_ply(df_train_iv, bins_var)
-```
 
 ```{r, include=FALSE}
-model <- glm(incumpla ~ ., data = df_train_woe2)
-summary(model)
+
+train_model <- glm(good_bad ~ ., data = train_woes, family = binomial())
+summary(train_model)
 ```
+
+## Logistic Regression into Scorecard
 
 ```{r, include=FALSE}
-# Convert to binned data frame for test data: 
-df_test_iv <- test %>% select(names(df_train_iv))
-df_test_woe2 <- woebin_ply(df_test_iv, bins_var)
-
-test_pred2 <- predict(model, df_test_woe2, type = "response")
-
-perf_eva(pred = test_pred2, label = df_test_iv$incumpla,
-         type = c("roc"), 
-         title = "Test Data")
-?scorecard2
-```
-Scorecard
-```{r, echo=FALSE}
-my_card <- scorecard(bins_var, model)
-score1 = scorecard_ply(train, my_card)
+score_card_model <- scorecard(bins, train_model, points0 = 690)
 ```
 
-```{r, echo=FALSE}
-library(stringr)
+## Predicción de los puntos en datos de Entrenamiento y Validación
+
+```{r, include=FALSE}
+train_score_predicted = scorecard_ply(train, score_card_model, 
+                                      only_total_score = FALSE)
+valid_score_predicted = scorecard_ply(valid, score_card_model, 
+                                      only_total_score = FALSE)
 ```
 
-```{r, echo=FALSE}
-do.call("bind_rows", my_card) %>% 
-  slice(-1) %>% 
-  select(-breaks, -is_special_values, -count, -count_distr, -neg, -pos, -posprob) %>% 
-  mutate_if(is.numeric, function(x) {round(x, 3)}) %>% 
-  mutate(bin = bin %>% 
-           str_replace_all("\\[", "From ") %>% 
-           str_replace_all("\\,", " to ") %>% 
-           str_replace_all("\\)", "")) -> iv_for_predictors_point
-```
+## Métricas de rendimiento
 
-```{r, echo=FALSE}
-iv_for_predictors_point %>% 
-  knitr::kable(col.names = c("Predictor", "Group", "WOE", "Scorecard", "Bin IV", "Total IV"))
+```{r, include=FALSE}
+curve <- roc(valid$good_bad, valid_score_predicted$score,
+              direction = ">")4
+plot(curve)
+auc(curve)
+
+gt <- gains_table(valid_score_predicted$score, valid$good_bad, bin_num = 8)
+gt[, c(2,4,5,6,7,8,10,11)]
 ```
 
