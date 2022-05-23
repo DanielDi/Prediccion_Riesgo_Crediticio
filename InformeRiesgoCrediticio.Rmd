@@ -26,16 +26,7 @@ knitr::opts_chunk$set(echo = TRUE)
 ## Lectura de los datos
 
 ```{r setup, include=FALSE}
-
 df = arrow::read_feather("datos_juntos.feather")
-
-# Delete cols with more than 50% with NAs
-df <- subset(df, select = c(-tot_coll_amt, -tot_cur_bal, -total_rev_hi_lim))
-
-# Solo tienen valores en 0
-df <- subset(df, select = c(-collections_12_mths_ex_med, -acc_now_delinq, 
-                            -pymnt_plan, -term))
-
 ```
 
 ## División de los datos en Entrenamiento y Prueba
