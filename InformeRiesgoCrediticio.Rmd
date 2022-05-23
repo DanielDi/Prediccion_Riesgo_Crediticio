@@ -3,8 +3,8 @@ title: "InformeRiesgoCrediticio"
 author: "Brayan Ortiz, Juan Peña, Thalea Hesse, Juan Falcon, Daniel Espinal"
 date: "`r Sys.Date()`"
 output:
-  pdf_document: default
   html_document: default
+  pdf_document: default
 ---
 
 ```{r setup, include=FALSE}
@@ -114,10 +114,38 @@ train_model <- glm(good_bad ~ ., data = train_woes, family = binomial())
 summary(train_model)
 ```
 
+```{r, include=FALSE}
+test_pred_mod <- predict(train_model, valid_woes, type = "response")
+
+perf_eva(test_pred_mod, valid_woes$good_bad,
+         type = c("roc"))
+```
+
 ## Logistic Regression into Scorecard
 
 ```{r, include=FALSE}
 score_card_model <- scorecard(bins, train_model, points0 = 690)
+```
+Gráfico del scorecard
+```{r, include=FALSE}
+library(stringr)
+```
+```{r, include=FALSE}
+do.call("bind_rows", score_card_model) %>% 
+  slice(-1) %>% 
+  #select(-breaks, -is_special_values, -count, -count_distr, -pos, -neg, -posprob) %>% 
+  #select(variable, bin, woe, points, bin_iv, total_iv) %>% 
+  mutate_if(is.numeric, function(x) {round(x, 3)}) %>% 
+  mutate(bin = bin %>% 
+           str_replace_all("\\%,%", "_") %>% 
+           str_replace_all("\\[", "From ") %>% 
+           str_replace_all("\\,", " to ") %>% 
+           str_replace_all("\\)", "")) -> iv_for_predictors_point
+
+iv_for_predictors_point %>% 
+  knitr::kable()
+
+#col.names = c("Predictor", "Group", "WOE", "Points", "Bin IV", "Total IV")
 ```
 
 ## Predicción de los puntos en datos de Entrenamiento y Validación
@@ -133,7 +161,7 @@ valid_score_predicted = scorecard_ply(valid, score_card_model,
 
 ```{r, include=FALSE}
 curve <- roc(valid$good_bad, valid_score_predicted$score,
-              direction = ">")4
+              direction = ">")
 plot(curve)
 auc(curve)
 
