@@ -15,6 +15,7 @@ library(ggplot2)
 library(klaR)
 library(riskR)
 library(corrplot)
+library(creditmodel)
 
 knitr::opts_chunk$set(echo = TRUE)
 ```
@@ -33,6 +34,39 @@ df <- subset(df, select = c(-collections_12_mths_ex_med, -acc_now_delinq,
                             -pymnt_plan, -term))
 ```
 
+## Selección de variables
+
+Se decidió realizar la selección de variables desde el dataframe general para tenerlas
+listas cuando se haga la separación en entrenamiento y prueba. 
+
+## Prueba total
+```{r, include=FALSE}
+df_num <- subset(df, select = c(-grade, -home_ownership,
+                                          -verification_status, -purpose, 
+                                          -addr_state, -initial_list_status))
+
+bins_df <- woebin(df, y = "good_bad", method = "tree")
+
+df_num_bins <- woebin_ply(df, bins_df, to = "bin")
+df_num_woes <- woebin_ply(df, bins_df)
+
+df_model <- glm(good_bad ~ ., family = binomial(), data = df_num_woes)
+
+df_model_card <- scorecard(bins_df, df_model)
+
+iv_list <- feature_selector(dat_train = df_num_woes, dat_test = NULL, 
+                            target = "good_bad", filter = "IV", iv_cp = 0.02,
+                            vars_name = FALSE)
+iv_list
+
+# Selecciona las variables basadas en la correlación y el iv_list
+# fast_high_cor_filter(dat = df_num_woes, com_list = iv_list, p = 0.15, cor_class = TRUE, vars_name = FALSE)
+
+
+score_val <- scorecard_ply(df, df_model_card, only_total_score = FALSE)
+score_val
+
+```
 
 
 ## División de los datos
@@ -42,10 +76,9 @@ tv <- split_df(df, y = "good_bad", ratio = c(0.75, 0.25),
 
 train <- tv$train
 valid <- tv$valid
-
 ```
 
-## Separación de datos númericos y categóricos
+## Separación de datos númericos
 ```{r}
 train_num <- subset(train, select = c(-grade, -home_ownership,
                                           -verification_status, -purpose, 
@@ -64,7 +97,7 @@ options(digits = 3)
 
 # Muestra los bins de la variable X: bins$X
 bins$loan_amnt[, c(2, 4, 5, 6, 7, 8)]
-
+my_card <- scorecard(bins_var, model)
 # Visualización de los bins de la variable X
 woebin_plot(bins, x = "loan_amnt", line_value = "woe")
 ```
@@ -76,17 +109,17 @@ train_num_bins <- woebin_ply(train_num, bins, to = "bin")
 ```
 
 ## Convertir de datos
+
 ```{r}
-# Convertir datos númericos a factores
+# Datos númericos -> factores
 train_num_bins <- mutate_if(train_num_bins, sapply(train_num_bins, is.character), as.factor)
 
-# Convertir datos categóricos a factores
+# Datos categóricos -> factores
 train_num_bins <- mutate_if(train_num_bins, sapply(train_num_bins, is.integer), as.factor)
 
+# Datos lógicos -> factores
 train_num_bins <- mutate_if(train_num_bins, sapply(train_num_bins, is.logical), as.factor)
 ```
-
-
 
 ## Análisis de WOEs
 
@@ -98,9 +131,16 @@ woe_model$woe$home_ownership
 train_woes <- data.frame(good_bad = train_num_bins$good_bad, 
                          woe_model$xnew)
 
-valid_woes <- predict(woe_model, subset(valid, select = c(-good_bad)))
+#valid_woes <- predict(woe_model, subset(valid, select = c(-good_bad)))
 ```
 
+```{r, include=FALSE}
+iv_list <- feature_selector(dat_train = train_woes, dat_test = NULL, 
+                            target = "good_bad", filter = "IV", iv_cp = 0.02,
+                            vars_name = FALSE)
+iv_list
+
+```
 
 ## Selección de Variables Predictoras
 
@@ -148,26 +188,10 @@ score_card_model <- scorecard(subset(train_num_bins, select = x), model)
 
 
 x <- names(df_selected_vars)
-x
+x  
 
 
 score_predicted = scorecard_ply(subset(train_num, select = x), score_card_model)
-```
-
-```{r, echo=FALSE}
-do.call("bind_rows", score_card_model) %>% 
-  slice(-1) %>% 
-  select(-breaks, -is_special_values, -count, -count_distr, -neg, -pos, -posprob) %>% 
-  mutate_if(is.numeric, function(x) {round(x, 3)}) %>% 
-  mutate(bin = bin %>% 
-           str_replace_all("\\[", "From ") %>% 
-           str_replace_all("\\,", " to ") %>% 
-           str_replace_all("\\)", "")) -> iv_for_predictors_point
-```
-
-```{r, echo=FALSE}
-score_card_model %>% 
-  knitr::kable()
 ```
 
 
