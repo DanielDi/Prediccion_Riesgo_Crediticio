@@ -1,5 +1,5 @@
 ---
-title: "InformeRiesgoCrediticio"
+title: "Informe de Riesgo Crediticio"
 author: "Brayan Ortiz, Juan Peña, Thalea Hesse, Juan Falcon, Daniel Espinal"
 date: "`r Sys.Date()`"
 output:
@@ -7,7 +7,7 @@ output:
   pdf_document: default
 ---
 
-```{r setup, include=FALSE}
+```{r setup, include=FALSE, warning=FALSE}
 library(purrr)
 library(feather)
 library(arrow)
@@ -19,19 +19,53 @@ library(riskR)
 library(corrplot)
 library(creditmodel)
 library(pROC)
+library(knitr)
+library(formattable)
+library(RColorBrewer)
 
-knitr::opts_chunk$set(echo = TRUE)
+opts_chunk$set(echo = TRUE)
 ```
+## Introducción
 
-## Lectura de los datos
+Los modelos estadísticos han sido utilizados como métodos prédictivos para la probabilidad de que un prestatario incumpla en el pago de sus obligaciones al prestamista [1]. La empresas dedicadas a las finanzas y, en particular, las prestamistas buscan métricas que les ayuden a evaluar si un cliente es un riesgo potencial para su negocio. Estas métricas se pueden resumir en un tarjeta de puntuación (scorecard), la cual presenta rangos de riesgo con base a los criterios críticos de cada empresa. En este proyecto se presenta el entrenamiento y la validación de un modelo de regresión logística para la probabilidad que una persona cumpla o incumpla los pagos. Después, este modelo se convierte en un scorecard el cual asigna unos puntos con base a las características que se seleccionaron de cada cliente.
 
-```{r setup, include=FALSE}
+
+## Datos
+
+Los datos que se utilizan provienen de la base de datos *loan_data_2007_2014*. Esta base de datos contiene más de 450000 observaciones. Los datos corresponden a características de los préstamos a clientes que la compañía Lending Club realizó entre los años 2007 y 2014. Cuenta con 74 variables (numéricas y categóricas) que describen cada préstamo realizado. Sin embargo, luego de analizar las características predictoras, se encontró que varias de estas eran redundantes o estaban contenidas en otras, por lo que se descartaron del modelo. Además, la variable objetivo del modelo contenía varias categorías que describían si el estado de un cliente había sido bueno o malo, así que se decidió llevar esta variable a binaria (bueno o malo) y se construyó teniendo en cuenta las categorías que esta tenía. Finalmente, se obtiene un conjunto de datos con 22 variables: 21 predictoras y 1 objetivo. 
+
+
+## Lectura y procesamiento de los datos
+
+El procesamiento de los datos se llevó a cabo en Python. En este [link](https://github.com/DanielDi/Prediccion_Riesgo_Crediticio) se puede analizar al detalle cada procedimiento realizado. A continuación se presentan las ideas generales de lo que se realizó: 
+
+* La variable objetivo *loan_status* contenía varias categorías para describir el estado bueno o malo, por lo que se agruparon y se generó una variable binaria. En particular, los datos que pertenecían a las categorías Default, Late (31-120 days), Charged Off, Does not meet the credit policy. Status: Charged Of; se marcaron como 1 para indicar que incumple. En cualquier otro caso, se marcó con un 0 para indicar que cumple.  
+* Habían 29 registros que no tenían cuentas por lo que los valores en las características relacionadas a ingresos se completaron con ceros.  
+* Las características que contenían cadenas de caracteres se convirtieron a numéricas para un fácil manejo.  
+* Se eliminan las características redundantes o que no tienen información porque el cliente aún no tiene contrato con la entidad.  
+* El porcentaje de datos NaNs en *emp_lenght* era de 4.5% y en *annual_inc* de 0.000858%. Para el primero se supone que la duración del empleo fue inferior a un año y, por tanto, los NaNs se reemplazaron por 0; para el segundo, se reemplazaron por la media de los datos en esta característica.
+
+
+```{r, echo=FALSE, warning=FALSE}
 df = arrow::read_feather("datos_juntos.feather")
+
+layout(matrix(c(1,2), ncol = 2))
+
+hist(df$installment, xlab = "Installments (USD)", 
+     main = "Histograma N°1", col = "lightcoral", 
+     ylab = "Frecuencia") 
+
+hist(df$loan_amnt, xlab = "Cantidad del préstamo (USD)", 
+     main = "Histograma N°2", col = "lightcyan3",
+     ylab = "Frecuencia")
 ```
 
-## División de los datos en Entrenamiento y Prueba
+## Datos de entrenamiento y prueba
 
-```{r, include=FALSE}
+Con el propósito de validar el modelo predictivo se realiza una división de los datos en entrenamiento y validación. Se utilizó una distribución del 75% para los datos de entrenamiento y 25% para validación. Este procedimiento se llevó a cabo con la ayuda del método *split_df* del paquete *scorecard*.  
+
+Se presenta resumen de las variables númericas para los datos de entrenamiento:
+```{r, echo=FALSE, message=FALSE}
 
 tv <- split_df(df, y = "good_bad", ratio = c(0.75, 0.25),
                seed = 42, no_dfs = 2, name_dfs = c("train", "valid"))
@@ -39,12 +73,31 @@ tv <- split_df(df, y = "good_bad", ratio = c(0.75, 0.25),
 train <- tv$train
 valid <- tv$valid
 
+train_sz <- nrow(train)
+valid_sz <- nrow(valid)
+sizes_dfs <- data.frame(name=c("Entrenamiento", "Validación"), 
+                        value=c(train_sz, valid_sz))
+
+ggplot(sizes_dfs, aes(x=name, y=value,fill=name))+
+  geom_bar(stat = "identity")+
+  ylab("Cantidad")+
+  xlab("Partición de los Datos")+
+  geom_text(aes(label=value), position = "stack", hjust = 0.5,vjust=-0.8, size=2.5)+
+  scale_fill_manual(values=c("lightcoral",
+                             "lightcyan3"))
+
 ```
 
-## Selección de variables predictoras
+## Agrupación de las variables en bins
 
-```{r, include=FALSE}
+Uno de los pasos más importantes para la creación del scorecard es lograr agrupar las variables en categorías. Este proceso se conoce como Bining. El cálculo de los bins se hace con el objetivo de calcular el Weight of Evidence Method (WoE) de las variables. En particular, se obtienen por separado los bins y los WoEs asociados a los bins para luego transformar el conjunto de datos con estos nuevos valores. La fórmula que se utiliza para la transformación de los datos en categóricos tiene la siguiente estructura: 
+$$\begin{align}
+\text{WoE:} \qquad &\ln \frac{\text{Distr Good}}{\text{Distr Bad}} \cdot 100  \\[10pt]
+\end{align}$$
 
+Estos cálculos se llevan a cabo con la ayuda de la función *woebin* del paquete *scorecard*. Para transformar los datos se utiliza *woebin_ply*. 
+
+```{r, include=FALSE, message=FALSE}
 # Agrupa los datos en bins
 bins <- woebin(train, y = "good_bad", method = "tree")
 
@@ -56,56 +109,80 @@ train_woes <- woebin_ply(train, bins)
 valid_bins <- woebin_ply(valid, bins, to = "bin")
 valid_woes <- woebin_ply(valid, bins)
 
+```
+
+## Selección de variables
+
+Comunmente en Estadística la selección de variables se realiza con los métodos AIC o BIC [2]. Sin embargo en los modelos de scorecard se emplean otra técnicas. En particular:  
+1. Information Values  
+2. Population Stability Analyses  
+3. Correlation Analyses.
+
+En el proyecto se hace uso principalmente de la primera, sin embargo con la tercera opción se refuerza la selección que se hizo.
+
+### Información de valores
+El cálculo de estos valores para cada variable se obtienen con la siguiente fórmula:  
+$$\begin{align} \text{IV:} \qquad &\sum_{i=1}^n \left( \text{Distr Good}_i - \text{Distr Bad}_i \right) \cdot \ln \frac{\text{Distr Good}_i}{\text{Distr Bad}_i}\end{align}$$
+Según [3], si el IV para una variable es inferior a 0.02, entonces esta variable se puede descartar del modelo. Para calcular estos valores se utilizó la función *feature_selector* del paquete *creditmodel*. Estas fueron las variables seleccionadas:   
+
+```{r, echo=F, message=F, warning=F}
 iv_vars <- feature_selector(dat_train = train_woes, dat_test = NULL, 
                             target = "good_bad", filter = "IV", iv_cp = 0.02,
                             vars_name = FALSE)
 
 var_names <- sub("_woe", "", iv_vars$Feature)
-var_names
-```
+aux_iv_vars <- data.frame(iv_vars$Feature, iv_vars$IV)
+names(aux_iv_vars) <- c("Variable", "IV")
+kable(aux_iv_vars)
 
-## Filtrar los dataframes con las nuevas variables
-```{r, include=FALSE}
-
+# Filtrar los dataframes con las nuevas variables
 train <- subset(train, select = append(var_names, "good_bad"))
 train_bins <- subset(train_bins, select = append(paste(var_names, "_bin", sep=""), "good_bad"))
 train_woes <- subset(train_woes, select = append(paste(var_names, "_woe", sep=""), "good_bad"))
-# bins <- woebin(train, y = "good_bad", method = "tree")
 
 valid <- subset(valid, select = append(var_names, "good_bad"))
 valid_bins <- subset(valid_bins, select = append(paste(var_names, "_bin", sep=""), "good_bad"))
 valid_woes <- subset(valid_woes, select = append(paste(var_names, "_woe", sep=""), "good_bad"))
 ```
 
-## Análisis de Agrupamiento en los datos de Entrenamiento
+### Análisis de correlaciones
 
+Se presenta las correlaciones de las variables que se eligieron con el método de IV. 
 
-```{r, include=FALSE}
-
-options(digits = 4)
-bins$int_rate[, c(2, 4, 5, 6, 7, 8)]
-
-# Visualización de los bins de la variable int_rate
-woebin_plot(bins, x = "int_rate", line_value = "woe")
-```
-
-## Correlaciones entre variables predictoras
-```{r, include=FALSE}
-names(train_woes) <- sub("_woe", "", names(train_woes))
-corr_train = cor(train_woes)
+```{r, echo=FALSE, message=FALSE}
+aux_train_woes <- train_woes
+names(aux_train_woes) <- sub("_woe", "", names(aux_train_woes))
+corr_train = cor(aux_train_woes)
 corrplot(corr_train)
 ```
+
+## Análisis de los agrupamientos
+
+A las variables numéricas se les asignan unos intervalos para categorizarlas. A continuación se muestra un ejemplo con la variable *annual_inc*
+
+```{r, echo=FALSE, message=FALSE, warning=F}
+# Muestra la información relevante de los bins 
+kable(bins$annual_inc[, c(2, 4, 5, 6, 7, 8)])
+
+# Grafica los bins
+woebin_plot(bins, x = "annual_inc", line_value = "woe", show_iv = F)
+```
+
+La gráfica muestra los porcentajes de valores *positivos* y *negativos* para cada categoría creada. En este ámbito los positivos son la cantidad de personas que incumplen el pago, y los negativos son quienes los cumplen.
 
 
 ## Modelo glm
 
-```{r, include=FALSE}
+Los modelos de regresión logística son lo más usados para realizar predicciones de scorecard [4]. Por esta razón se utilizó este modelo, el cual se implementa con la función *glm*.
+
+```{r, echo=FALSE, message=FALSE}
 
 train_model <- glm(good_bad ~ ., data = train_woes, family = binomial())
 summary(train_model)
 ```
 
-```{r, include=FALSE}
+```{r, echo=FALSE, message=FALSE}
+
 test_pred_mod <- predict(train_model, valid_woes, type = "response")
 
 perf_eva(test_pred_mod, valid_woes$good_bad,
@@ -114,14 +191,14 @@ perf_eva(test_pred_mod, valid_woes$good_bad,
 
 ## Logistic Regression into Scorecard
 
-```{r, include=FALSE}
+```{r, echo=FALSE, message=FALSE}
 score_card_model <- scorecard(bins, train_model, points0 = 690)
 ```
 Gráfico del scorecard
-```{r, include=FALSE}
+```{r, echo=FALSE, message=FALSE}
 library(stringr)
 ```
-```{r, include=FALSE}
+```{r, echo=FALSE, warning=FALSE}
 do.call("bind_rows", score_card_model) %>% 
   slice(-1) %>% 
   #select(-breaks, -is_special_values, -count, -count_distr, -pos, -neg, -posprob) %>% 
@@ -141,7 +218,7 @@ iv_for_predictors_point %>%
 
 ## Predicción de los puntos en datos de Entrenamiento y Validación
 
-```{r, include=FALSE}
+```{r, echo=FALSE, message=FALSE}
 train_score_predicted = scorecard_ply(train, score_card_model, 
                                       only_total_score = FALSE)
 valid_score_predicted = scorecard_ply(valid, score_card_model, 
@@ -150,7 +227,7 @@ valid_score_predicted = scorecard_ply(valid, score_card_model,
 
 ## Métricas de rendimiento
 
-```{r, include=FALSE}
+```{r, echo=FALSE, message=FALSE}
 curve <- roc(valid$good_bad, valid_score_predicted$score,
               direction = ">")
 plot(curve)
