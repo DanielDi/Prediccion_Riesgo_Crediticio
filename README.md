@@ -1,4 +1,4 @@
-# Prediccion Riesgo Crediticio
+# Predicción Riesgo Crediticio
 Sean bienvenidos al repositorio de x, en el cual podrán encontrar todas las herramientas y elementos que se utilizaron en el proceso de desarrollo de este proyecto. Los apartados más importantes del proyecto se encuentran en la siguiente tabla de contenido.
 ## Tabla de Contenido
 
