@@ -22,6 +22,7 @@ library(pROC)
 library(knitr)
 library(formattable)
 library(RColorBrewer)
+library(caret)
 
 opts_chunk$set(echo = TRUE)
 ```
@@ -182,15 +183,22 @@ summary(train_model)
 ```
 ### Métricas de rendimiento del modelo
 
-El desempeño de los modelos de regresión logístico se puede medir de varias formas, cada una de ellas brinda información relevante para diferentes escenarios. Sin embargo, las cuatro métricas más usadas para este análisis son: **accuracy**, **precision**, **recall** y **F1-score**. Adicionalmente, se tiene **confusion matrix*, es una técnica sencilla para visualizar el rendimiento de la clasificación de los modelos.
-
+El desempeño de los modelos de regresión logístico se puede medir de varias formas, cada una de ellas brinda información relevante para diferentes escenarios. Sin embargo, las cuatro métricas más usadas para este análisis son: **accuracy**, **precision**, **recall** y **F1-score**. Adicionalmente, se tiene **confusion matrix*, es una técnica sencilla para visualizar el rendimiento de la clasificación de los modelos. A continuación se presentan estas métricas y la gráfica del ROC para determinar cómo se comportan las predicciones entre buenas y malas. 
 
 ```{r, echo=FALSE, message=FALSE}
 
 test_pred_mod <- predict(train_model, valid_woes, type = "response")
 
-perf_eva(test_pred_mod, valid_woes$good_bad,
-         show_plot = c("roc"), confusion_matrix = T)
+metrics <- perf_eva(test_pred_mod, valid_woes$good_bad,
+         show_plot = c("roc"), binomial_metric = NULL)
+```
+Con base a esta tabla se puede determinar un AUC de 0.6698 y el cutoff óptimo es de 0.11. Con base a este valor de corte es que se convierten las probabilidades en etiquetas 1 o 0.
+
+```{r, echo=F, message=F}
+confusion_matrix <- perf_eva(test_pred_mod, valid_woes$good_bad,
+         show_plot = NULL, binomial_metric = NULL, confusion_matrix = T)
+
+kable(confusion_matrix$confusion_matrix$dat)
 ```
 
 ## Logistic Regression into Scorecard
@@ -232,7 +240,7 @@ valid_score_predicted = scorecard_ply(valid, score_card_model,
 ## Métricas de rendimiento
 
 ```{r, echo=FALSE, message=FALSE}
-curve <- roc(valid$good_bad, valid_score_predicted$score,
+curve <- roc(valid_woes$good_bad, valid_score_predicted$score,
               direction = ">")
 plot(curve)
 auc(curve)
