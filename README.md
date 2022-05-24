@@ -10,8 +10,6 @@ Sean bienvenidos al repositorio de x, en el cual podrán encontrar todas las her
 
 ### Introducción
 
-El riesgo de crédito es la posibilidad de que un prestamista pierda lo que asume debido a la posibilidad de que un prestatario no pague un préstamo. La gestión del riesgo de crédito define mecanismos y estrategias con el fin de cumplir unas metas en el recaudo de cartera y se apoya en el seguimiento y control para promover la mejora continua de la organización.
-
 En este proyecto se utilizó una base de datos que contiene más de 450.000 observaciones, correspondientes a préstamos a clientes de la compañía estadounidense de préstamos “Lending Club” entre los años 2007 y 2014, con 74 variables que indican desde el estado actual del préstamo hasta el comportamiento financiero del prestatario.  
 
 Se construirá un modelo a partir de estos datos, capaz de predecir la probabilidad de que un cliente cumpla o incumpla sus obligaciones financieras en los siguientes 12 meses al préstamo realizado. Esta probabilidad de pago será representada en una ScoreCard, que permitirá saber el puntaje crediticio del cliente y lo clasificara en una de las categorías de acuerdo a su comportamiento financiero, y en un futuro poder evaluar qué tan apta es esta persona para recibir un préstamo.
@@ -24,8 +22,23 @@ Por ultimo un aplicativo web mediante ShinyApps, que permita al usuario ingresar
 
 ### Limpieza de Datos
 
+En este apartado se realizó todo lo referente a la depuración y limpieza de la base de datos, el procedimiento con los valores NA y la ingeniería de características para la creación de nuevas variables.
+
+[Limpieza en Python](https://github.com/DanielDi/Prediccion_Riesgo_Crediticio/blob/main/datos_juntos.feather)
+
 ### Modelo
+
+En la construcción del modelo se diseñó un glm para hacer la predicción de si un cliente cumplirá o incumplirá con el pago de su deuda, con base a esto se construye el scorecard el cual nos brinda el puntaje crediticio que clasificará a los mismos. 
+
 
 ### Informe Técnico
 
+Aquí podrá ver todo lo referente al informe técnico del proyecto, la selección de variables, la construcción paso a paso del modelo, análisis descriptivo y argumentación del proyecto junto a las conclusiones del mismo.  
+
+[Informe Técnico](https://github.com/DanielDi/Prediccion_Riesgo_Crediticio/blob/main/datos_juntos.feather)
+
 ### App
+
+En este apartado podra encontrar todo lo relacionado con el desarrollo y ejecucion de la aplicacion web oficial de x
+
+[App](https://github.com/DanielDi/Prediccion_Riesgo_Crediticio/blob/main/datos_juntos.feather)
