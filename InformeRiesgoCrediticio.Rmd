@@ -141,7 +141,7 @@ train_bins <- subset(train_bins, select = append(paste(var_names, "_bin", sep=""
 train_woes <- subset(train_woes, select = append(paste(var_names, "_woe", sep=""), "good_bad"))
 
 valid <- subset(valid, select = append(var_names, "good_bad"))
-valid_bins <- subset(valid_bins, select = append(paste(var_names, "_bin", sep=""), "good_bad"))
+valid_bins <- subset(valid_bins,  select = append(paste(var_names, "_bin", sep=""), "good_bad"))
 valid_woes <- subset(valid_woes, select = append(paste(var_names, "_woe", sep=""), "good_bad"))
 ```
 
@@ -180,13 +180,17 @@ Los modelos de regresión logística son lo más usados para realizar prediccion
 train_model <- glm(good_bad ~ ., data = train_woes, family = binomial())
 summary(train_model)
 ```
+### Métricas de rendimiento del modelo
+
+El desempeño de los modelos de regresión logístico se puede medir de varias formas, cada una de ellas brinda información relevante para diferentes escenarios. Sin embargo, las cuatro métricas más usadas para este análisis son: **accuracy**, **precision**, **recall** y **F1-score**. Adicionalmente, se tiene **confusion matrix*, es una técnica sencilla para visualizar el rendimiento de la clasificación de los modelos.
+
 
 ```{r, echo=FALSE, message=FALSE}
 
 test_pred_mod <- predict(train_model, valid_woes, type = "response")
 
 perf_eva(test_pred_mod, valid_woes$good_bad,
-         type = c("roc"))
+         show_plot = c("roc"), confusion_matrix = T)
 ```
 
 ## Logistic Regression into Scorecard
