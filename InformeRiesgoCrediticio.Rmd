@@ -173,7 +173,7 @@ woebin_plot(bins, x = "annual_inc", line_value = "woe", show_iv = F)
 La gráfica muestra los porcentajes de valores *positivos* y *negativos* para cada categoría creada. En este ámbito los positivos son la cantidad de personas que incumplen el pago, y los negativos son quienes los cumplen.
 
 
-## Modelo glm
+## Modelo de regresión logística
 
 Los modelos de regresión logística son lo más usados para realizar predicciones de scorecard [4]. Por esta razón se utilizó este modelo, el cual se implementa con la función *glm*.
 
@@ -185,90 +185,134 @@ summary(train_model)
 
 ### Métricas de rendimiento del modelo
 
-El desempeño de los modelos de regresión logístico se puede medir de varias formas, cada una de ellas brinda información relevante para diferentes escenarios. Sin embargo, las cuatro métricas más usadas para este análisis son: **accuracy**, **precision**, **recall** y **F1-score**. Adicionalmente, se tiene **confusion matrix*, es una técnica sencilla para visualizar el rendimiento de la clasificación de los modelos. A continuación se presentan estas métricas y la gráfica del ROC para determinar cómo se comportan las predicciones entre buenas y malas. 
+El desempeño de los modelos de regresión logístico se puede medir de varias formas, cada una de ellas brinda información relevante para diferentes escenarios. Sin embargo, las cuatro métricas más usadas para este análisis son: **accuracy**, **precision**, **recall** y **F1-score**. Adicionalmente, se tiene **confusion matrix**, es una técnica sencilla para visualizar el rendimiento de la clasificación de los modelos. A continuación se presentan estas métricas y la gráfica del ROC para determinar cómo se comportan las predicciones entre buenas y malas. 
+
 ```{r, echo=FALSE, message=FALSE, warning=F}
 
 valid_woes$prediction <- predict(train_model, valid_woes, type = "response")
 
 train_woes$prediction <- predict(train_model, train_woes, type = "response")
 
-
 metrics <- perf_eva(valid_woes$prediction, valid_woes$good_bad,
-         show_plot = c("roc"))
+         show_plot = c("roc", "f1"))
 ```
+
+
+Con base a esta tabla se puede determinar un AUC de `r metrics$binomial_metric$dat[,"AUC"]`. Para tener valores númericos se presentan las siguientes métricas:
+```{r, echo=F, message=F}
+kable(metrics$binomial_metric$dat)
+```
+
+
+También se presenta la distribución de las probabilidades predichas, agrupas con las etiquetas reales: 
+
 
 ```{r, echo=FALSE, message=FALSE, warning=F}
 
-
-gg1 <- ggplot( valid_woes, aes( prediction, color = as.factor(good_bad) ) ) + 
-geom_density( size = 1 ) +
+gg1 <- ggplot( valid_woes, aes( prediction, color = as.factor(good_bad) )) + 
+geom_density( size = 0.7 ) +
 ggtitle( "Predicciones para el Conjunto de Entrenamiento" ) + 
 scale_color_economist( name = "Datos", labels = c( "Negativo", "Positivo" ) ) + 
 theme_economist()
 
-gg2 <- ggplot( train_woes, aes( prediction,color = as.factor(good_bad) )) + 
-geom_density( size = 1 ) +
-ggtitle( "Predicciones para el Conjunto de Validación" ) + 
-scale_color_economist( name = "Datos", labels = c( "Negativo", "Positivo" ) ) + 
-theme_economist()
-
-plot_grid(gg1, gg2, labels = "AUTO")
+gg1
 ```
 
-Con base a esta tabla se puede determinar un AUC de `r metrics$binomial_metric$dat[,"AUC"]` y el cutoff óptimo es de 0.11. Con base a este valor de corte es que se convierten las probabilidades en etiquetas 1 o 0.
+Se puede observar que los valores positivos están solapados con los negativos y muy a la izquierda, lo cual no debería suceder. Un indicio de este comportamiento es que el porcentaje inicial de registros con la variable objetivo positiva es aproximadamente 8%.  
+
+Para analizar más al detalle las predicciones del modelo se realiza una matriz de confusión.
 
 ```{r, echo=F, message=F, warning=F}
 confusion_matrix <- perf_eva(valid_woes$prediction, valid_woes$good_bad,
          show_plot = NULL, binomial_metric = NULL, confusion_matrix = T)
 
-kable(confusion_matrix$confusion_matrix$dat)
+conf_matrix <- confusion_matrix$confusion_matrix$dat
+names(conf_matrix) <- c("Etiqueta", "Predicción = 0", "Predicción = 1", "Error")
+
+kable(conf_matrix)
+
 ```
 
-## Logistic Regression into Scorecard
+Como análisis final se calculan las métricas de precision, recall y F1 score con base en la matrix de confusión:
+
+```{r, echo=F, message=F}
+TN <- as.integer(conf_matrix[1,'Predicción = 0'])
+FN <- as.integer(conf_matrix[2,'Predicción = 0'])
+
+FP <- as.integer(conf_matrix[1,'Predicción = 1'])
+TP <- as.integer(conf_matrix[2,'Predicción = 1'])
+
+model_precision <- TP / (TP + FP)
+model_recall <- TP / (TP + FN)
+model_f1score <- 2 * model_precision * model_recall / (model_precision + model_recall)
+
+mconf_metrics <- data.frame(model_precision, model_f1score, model_recall)
+
+names(mconf_metrics) <- c("Precision", "F1 Score", "Recall")
+kable(mconf_metrics)
+```
+
+## Modelo logístico a scorecard
+
+El último paso para completar el modelo de riesgo es pasar del modelo logístico al scorecard. Esto se obtiene asignándoles unos puntos a cada bin calculado y el puntaje total es la suma sobre todas las característica que cumpla el registro en cuestión. Para implementar esta transformación se utiliza la función **scorecard**, a la cual se le pasa los bins calculados junto con el modelo previamente entrenado. Para predecir el puntaje se utiliza el método **scorecard_ply** al cual se le pasan las características del registro a predecir y el modelo de scorecard obtenido con la función scorecard. 
+
 
 ```{r, echo=FALSE, message=FALSE}
 score_card_model <- scorecard(bins, train_model, points0 = 690)
 ```
-Gráfico del scorecard
-```{r, echo=FALSE, message=FALSE}
-library(stringr)
-```
-```{r, echo=FALSE, warning=FALSE}
-do.call("bind_rows", score_card_model) %>% 
-  slice(-1) %>% 
-  #select(-breaks, -is_special_values, -count, -count_distr, -pos, -neg, -posprob) %>% 
-  #select(variable, bin, woe, points, bin_iv, total_iv) %>% 
-  mutate_if(is.numeric, function(x) {round(x, 3)}) %>% 
-  mutate(bin = bin %>% 
-           str_replace_all("\\%,%", "_") %>% 
-           str_replace_all("\\[", "From ") %>% 
-           str_replace_all("\\,", " to ") %>% 
-           str_replace_all("\\)", "")) -> iv_for_predictors_point
 
-iv_for_predictors_point %>% 
-  knitr::kable()
+### Predicción del puntaje con el modelo de scorecard
 
-#col.names = c("Predictor", "Group", "WOE", "Points", "Bin IV", "Total IV")
-```
+En esta sección se le pasalos datos y el modelo de scorecard. Este modelo devuelve un puntaje total y los puntajes que le asignó en cada característica.  
 
-## Predicción de los puntos en datos de Entrenamiento y Validación
+Un ejemplo de predicción con los datos de entrenamiento: 
 
 ```{r, echo=FALSE, message=FALSE}
 train_score_predicted = scorecard_ply(train, score_card_model, 
                                       only_total_score = FALSE)
+kable(head(train_score_predicted))
 valid_score_predicted = scorecard_ply(valid, score_card_model, 
                                       only_total_score = FALSE)
 ```
 
-## Métricas de rendimiento
+
+Y con los datos de validación: 
 
 ```{r, echo=FALSE, message=FALSE}
-curve <- roc(valid_woes$good_bad, valid_score_predicted$score,
-              direction = ">")
-plot(curve)
-auc(curve)
+valid_score_predicted = scorecard_ply(valid, score_card_model, 
+                                      only_total_score = FALSE)
+kable(head(valid_score_predicted))
+```
+### Variables que más afectan el perfil de riesgo
+
+### Resumen del modelo de scorecard
+
+Finalmente, se presenta el resumen de los puntajes que utilizó el modelo:
+
+```{r, echo=FALSE, message=FALSE}
 
 gt <- gains_table(valid_score_predicted$score, valid$good_bad, bin_num = 8)
-gt[, c(2,4,5,6,7,8,10,11)]
+kable(gt[, c(2,4,5,6,7,8,10,11)])
+
 ```
+
+Se ilustra por medio de un histograma de la cantidad de personas (las no Default) agrupadas por el puntaje obtenido: 
+
+```{r, echo=F, message=F}
+
+df_gt <- gt[, c('bin', 'neg', 'pos')]
+
+p <- ggplot(df_gt, aes(x = bin, y = neg)) + ylab("cantidad")
+p + geom_col(aes(x = bin, fill = factor(bin)))
+```
+
+Similarmente, se ilustran las personas con estado Defualt agrupadas por el puntaje obtenido:
+
+```{r, echo=F, message=F}
+
+p <- ggplot(df_gt, aes(x = bin, y = pos)) + ylab("cantidad")
+p + geom_col(aes(x = bin, fill = factor(bin)))
+```
+
+## Conclusiones
 
