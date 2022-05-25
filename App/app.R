@@ -10,7 +10,8 @@ ui <- dashboardPage(
   dashboardHeader(title = "PrediCrédito"),
   dashboardSidebar(sidebarMenu(
       menuItem("Descripción", tabName = "descripcion", icon = icon("info")),
-      menuItem("Scorecard", tabName = "scorecard", icon = icon("address-card"))
+      menuItem("Scorecard", tabName = "scorecard", icon = icon("address-card")),
+      menuItem("Recursos", tabName = "recursos", icon = icon("glyphicon glyphicon-link", lib="glyphicon"))
     )
   ),
   dashboardBody(
@@ -78,6 +79,14 @@ ui <- dashboardPage(
                   )
                 
                 )
+      ),
+      tabItem(tabName = "recursos",
+              h2("Colocar descripción acá"),
+              tags$a(
+                href="https://github.com/DanielDi/Prediccion_Riesgo_Crediticio", 
+                tags$img(src="github_image.png", 
+                         title="Link al repositorio en github")
+              )
       )
     )
   )
@@ -91,15 +100,15 @@ server <- function(input, output) {
     
     # Datos del usuario
     borrowerData <- data.frame(
-      int_rate = as.numeric(input$int_rate_input), 
-      grade=as.character(input$grade),
-      home_ownership=as.character(input$home_ownership_input),
-      annual_inc=as.numeric(input$annual_income_input),
-      verification_status=as.integer(input$verification_input),
-      purpose=as.character(input$purpose_input), 
-      dti=as.numeric(input$dti_input), 
-      inq_last_6mths=as.numeric(input$inq_6m_input)
-      #earliest_cr_line=as.integer(earliest_cr_days) 
+      int_rate            = as.numeric(input$int_rate_input), 
+      grade               = as.character(input$grade),
+      home_ownership      = as.character(input$home_ownership_input),
+      annual_inc          = as.numeric(input$annual_income_input),
+      verification_status = as.integer(input$verification_input),
+      purpose             = as.character(input$purpose_input), 
+      dti                 = as.numeric(input$dti_input), 
+      inq_last_6mths      = as.numeric(input$inq_6m_input)
+      #earliest_cr_line   = as.integer(earliest_cr_days) 
     )
     
     # Scorecard del usuario (dataframe)
