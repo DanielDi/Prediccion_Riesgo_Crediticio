@@ -3,6 +3,9 @@ library(shinydashboard)
 library(shiny)
 library(scorecard)
 
+load('data/scorecardModelo.RData')
+load('data/allScores.RData')
+
 ui <- dashboardPage(
   dashboardHeader(title = "PrediCrédito"),
   dashboardSidebar(sidebarMenu(
@@ -12,16 +15,23 @@ ui <- dashboardPage(
   ),
   dashboardBody(
     tabItems(
+      tabItem(tabName = "descripcion",
+        h2("Colocar descripción acá")
+      ),
       tabItem(tabName = "scorecard",
               fluidRow(
                 valueBoxOutput('score_box'),
+                valueBoxOutput('percentile_score_box'),
                 infoBoxOutput('int_rate_box'),
                 infoBoxOutput('grade_box'),
+                infoBoxOutput('home_ownership_box'),
                 infoBoxOutput('annual_inc_box'),
+                infoBoxOutput('verification_status_box'),
                 infoBoxOutput('purpose_box'),
                 infoBoxOutput('dti_box'),
-                infoBoxOutput('earliest_crc_box'),
-                infoBoxOutput('inq_6m_box')),
+                infoBoxOutput('inq_6m_box'),
+#                infoBoxOutput('earliest_crc_box')
+                ),
                 fluidRow(
                 box(
                     title = "Ingrese los siguientes datos:",
@@ -36,7 +46,17 @@ ui <- dashboardPage(
                                    "F" = "F",
                                    "G" = "G"),
                                     inline=T),
+                    selectInput("home_ownership_input", label="Tipo de vivienda actual",
+                                choices = list("Propia"="OWN",
+                                               "Arriendo"="RENT",
+                                               "Hipoteca"="MORTGAGE"),
+                    ),
                     numericInput("annual_income_input", "Ingresos anuales:", 10000, min = 0, max = 10000000),
+                    radioButtons("verification_input", "Verificación de los ingresos",
+                                 c("No verificados" = 0,
+                                   "Verificados por LC" = 1,
+                                   "Fuente verificada" = 2),
+                                 inline=T),
                     selectInput("purpose_input", label="¿Cuál es el propósito del préstamo?",
                                 choices = list("Boda"="wedding",
                                                "Vacaciones"="vacation",
@@ -53,16 +73,11 @@ ui <- dashboardPage(
                                                "Vehículo"="car"),
                                 ),
                     sliderInput("dti_input", "Relación deudas e ingresos:", 10, min = 0, max = 40),
-                    dateInput("earliest_cr_input", "Mes en el que abrió su primer crédito:", value = Sys.Date(), format = "mm/yy"),
                     sliderInput("inq_6m_input", "Solicitudes en los últimos 6 meses:", 0, min = 0, max = 40),
+                    #dateInput("earliest_cr_input", "Mes en el que abrió su primer crédito:", value = Sys.Date(), format = "mm/yy"),
                   )
-                  
+                
                 )
-              
-      ),
-      
-      tabItem(tabName = "descripcion",
-              h2("Colocar descripción acá")
       )
     )
   )
@@ -71,18 +86,25 @@ ui <- dashboardPage(
 server <- function(input, output) {
   # Calcular scorecard
   resultadoScorecard <- reactive({
-    earliest_cr_days <- Sys.Date() - input$earliest_cr_input
+    #Calcular días entre fecha actual y fecha de último crédito
+    #earliest_cr_days <- Sys.Date() - input$earliest_cr_input
     
+    # Datos del usuario
     borrowerData <- data.frame(
       int_rate = as.numeric(input$int_rate_input), 
-      grade=as.character(input$grade), 
-      annual_inc=as.numeric(input$annual_income_input), 
+      grade=as.character(input$grade),
+      home_ownership=as.character(input$home_ownership_input),
+      annual_inc=as.numeric(input$annual_income_input),
+      verification_status=as.integer(input$verification_input),
       purpose=as.character(input$purpose_input), 
       dti=as.numeric(input$dti_input), 
-      earliest_cr_line=as.integer(earliest_cr_days), 
       inq_last_6mths=as.numeric(input$inq_6m_input)
+      #earliest_cr_line=as.integer(earliest_cr_days) 
     )
+    
+    # Scorecard del usuario (dataframe)
     scorecardBorrower <- scorecard_ply(borrowerData, score_card_model, only_total_score = FALSE)
+    
     return(scorecardBorrower)
   })
   
@@ -103,10 +125,26 @@ server <- function(input, output) {
     )
   })
   
+  output$homeOwnershipOut <- renderText(resultadoScorecard()$home_ownership_points)
+  output$home_ownership_box <- renderInfoBox({
+    infoBox(
+      "Tipo de vivienda", textOutput('homeOwnershipOut'), icon = icon("home"),
+      color = "yellow", fill = FALSE
+    )
+  })
+  
   output$annualIncOut <- renderText(resultadoScorecard()$annual_inc_points)
   output$annual_inc_box <- renderInfoBox({
     infoBox(
       "Ingresos anuales", textOutput('annualIncOut'), icon = icon("glyphicon glyphicon-plus-sign", lib = "glyphicon"),
+      color = "yellow", fill = FALSE
+    )
+  })
+  
+  output$verificationOut <- renderText(resultadoScorecard()$verification_status_points)
+  output$verification_status_box <- renderInfoBox({
+    infoBox(
+      "Verificacion", textOutput('verificationOut'), icon = icon("glyphicon glyphicon-search", lib = "glyphicon"),
       color = "yellow", fill = FALSE
     )
   })
@@ -127,14 +165,6 @@ server <- function(input, output) {
     )
   })
   
-  output$earliestCrcOut <- renderText(resultadoScorecard()$earliest_cr_line_points)
-  output$earliest_crc_box <- renderInfoBox({
-    infoBox(
-      "Tiempo transcurrido desde el primer crédito", textOutput('earliestCrcOut'), icon = icon("calendar"),
-      color = "yellow", fill = FALSE
-    )
-  })
-  
   output$inq6mOut <- renderText(resultadoScorecard()$inq_last_6mths_points)
   output$inq_6m_box <- renderInfoBox({
     infoBox(
@@ -142,6 +172,14 @@ server <- function(input, output) {
       color = "yellow", fill = FALSE
     )
   })
+  
+  # output$earliestCrcOut <- renderText(resultadoScorecard()$earliest_cr_line_points)
+  # output$earliest_crc_box <- renderInfoBox({
+  #   infoBox(
+  #     "Tiempo transcurrido desde el primer crédito", textOutput('earliestCrcOut'), icon = icon("calendar"),
+  #     color = "yellow", fill = FALSE
+  #   )
+  # })
   
   # Box para puntaje total
   output$scoreOut <- renderText(resultadoScorecard()$score)
@@ -153,8 +191,21 @@ server <- function(input, output) {
   })
   
   # Cómo se ve contra la población
-  # percentile <- ecdf()
-  # percentile()
+  resultadoPoblacion <- reactive({
+    percentile <- ecdf(allScores$score)
+    percentileUser <- percentile(resultadoScorecard()$score)*100
+    percentPercentile <- paste(round(percentileUser, digits=2), "%")
+    return(percentPercentile)
+  })
+  
+  output$percentileResult <- renderText(resultadoPoblacion())
+  output$percentile_score_box <- renderValueBox({
+    valueBox(
+      textOutput('percentileResult'), "mejor que el resto de la población", icon = icon("star"),
+      color = "green"
+    )
+  })
+
 }
 
 shinyApp(ui, server)
