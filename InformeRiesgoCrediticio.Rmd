@@ -48,7 +48,7 @@ El procesamiento de los datos se llevó a cabo en Python. En este [link](https:/
 * El porcentaje de datos NaNs en *emp_lenght* era de 4.5% y en *annual_inc* de 0.000858%. Para el primero se supone que la duración del empleo fue inferior a un año y, por tanto, los NaNs se reemplazaron por 0; para el segundo, se reemplazaron por la media de los datos en esta característica.
 
 
-```{r, echo=FALSE, warning=FALSE}
+```{r, echo=FALSE, warning=FALSE,fig.cap = "Figura 1: Histograma variable Installments. Figura 2: Histograma variable Cantidad del préstamo ",fig.pos='H',fig.align='center'}
 df = arrow::read_feather("datos_juntos.feather")
 
 layout(matrix(c(1,2), ncol = 2))
@@ -67,7 +67,7 @@ hist(df$loan_amnt, xlab = "Cantidad del préstamo (USD)",
 Con el propósito de validar el modelo predictivo se realiza una división de los datos en entrenamiento y validación. Se utilizó una distribución del 75% para los datos de entrenamiento y 25% para validación. Este procedimiento se llevó a cabo con la ayuda del método *split_df* del paquete *scorecard*.  
 
 Se presenta resumen de las variables númericas para los datos de entrenamiento:
-```{r, echo=FALSE, message=FALSE}
+```{r, echo=FALSE, message=FALSE,fig.cap = "Figura 3: Distribución de la partición de los datos",fig.pos='H',fig.align='center'}
 
 tv <- split_df(df, y = "good_bad", ratio = c(0.75, 0.25),
                seed = 42, no_dfs = 2, name_dfs = c("train", "valid"))
@@ -77,10 +77,10 @@ valid <- tv$valid
 
 train_sz <- nrow(train)
 valid_sz <- nrow(valid)
-sizes_dfs <- data.frame(name=c("Entrenamiento", "Validación"), 
+sizes_dfs <- data.frame(Datos=c("Entrenamiento", "Validación"), 
                         value=c(train_sz, valid_sz))
 
-ggplot(sizes_dfs, aes(x=name, y=value,fill=name))+
+ggplot(sizes_dfs, aes(x=Datos, y=value,fill=Datos))+
   geom_bar(stat = "identity")+
   ylab("Cantidad")+
   xlab("Partición de los Datos")+
@@ -151,7 +151,7 @@ valid_woes <- subset(valid_woes, select = append(paste(var_names, "_woe", sep=""
 
 Se presenta las correlaciones de las variables que se eligieron con el método de IV. 
 
-```{r, echo=FALSE, message=FALSE}
+```{r, echo=FALSE, message=FALSE,fig.cap = "Figura 4: Gráfico de correlaciones de las variables elegidas por IV",fig.pos='H',fig.align='center' }
 aux_train_woes <- train_woes
 names(aux_train_woes) <- sub("_woe", "", names(aux_train_woes))
 corr_train = cor(aux_train_woes)
@@ -162,7 +162,7 @@ corrplot(corr_train)
 
 A las variables numéricas se les asignan unos intervalos para categorizarlas. A continuación se muestra un ejemplo con la variable *annual_inc*
 
-```{r, echo=FALSE, message=FALSE, warning=F}
+```{r, echo=FALSE, message=FALSE, warning=F,fig.cap = "Figura 5: Distribución de los bins de anuual_inc con su respectiva etiqueta ",fig.pos='H',fig.align='center'}
 # Muestra la información relevante de los bins 
 kable(bins$annual_inc[, c(2, 4, 5, 6, 7, 8)])
 
@@ -187,7 +187,7 @@ summary(train_model)
 
 El desempeño de los modelos de regresión logístico se puede medir de varias formas, cada una de ellas brinda información relevante para diferentes escenarios. Sin embargo, las cuatro métricas más usadas para este análisis son: **accuracy**, **precision**, **recall** y **F1-score**. Adicionalmente, se tiene **confusion matrix**, es una técnica sencilla para visualizar el rendimiento de la clasificación de los modelos. A continuación se presentan estas métricas y la gráfica del ROC para determinar cómo se comportan las predicciones entre buenas y malas. 
 
-```{r, echo=FALSE, message=FALSE, warning=F}
+```{r, echo=FALSE, message=FALSE, warning=F,fig.cap = "Figura 6: Gráfico ROC. Figura 7: Gráfico de rendimiento F1-score",fig.pos='H',fig.align='center'}
 
 valid_woes$prediction <- predict(train_model, valid_woes, type = "response")
 
@@ -207,7 +207,7 @@ kable(metrics$binomial_metric$dat)
 También se presenta la distribución de las probabilidades predichas, agrupas con las etiquetas reales: 
 
 
-```{r, echo=FALSE, message=FALSE, warning=F}
+```{r, echo=FALSE, message=FALSE, warning=F,fig.cap = "Figura 8: Distribución de las probabilidades predichas con su respectiva etiqueta",fig.pos='H',fig.align='center'}
 
 gg1 <- ggplot( valid_woes, aes( prediction, color = as.factor(good_bad) )) + 
 geom_density( size = 0.7 ) +
@@ -296,22 +296,24 @@ kable(gt[, c(2,4,5,6,7,8,10,11)])
 
 ```
 
-Se ilustra por medio de un histograma de la cantidad de personas (las no Default) agrupadas por el puntaje obtenido: 
+Se ilustra por medio de un Gráfico de barras de la cantidad de personas (las no Default) agrupadas por el puntaje obtenido: 
 
-```{r, echo=F, message=F}
+```{r, echo=F, message=F,fig.cap = "Figura 9: Gráfico de barras personas No Default por grupo",fig.pos='H',fig.align='center'}
 
 df_gt <- gt[, c('bin', 'neg', 'pos')]
 
-p <- ggplot(df_gt, aes(x = bin, y = neg)) + ylab("cantidad")
-p + geom_col(aes(x = bin, fill = factor(bin)))
+p <- ggplot(df_gt, aes(x = bin, y = neg)) + ylab("Cantidad")
+p + geom_col(aes(x = bin, fill = factor(bin)))+
+   geom_text(aes(label=neg), position = "stack", hjust = 0.5,vjust=-0.3, size=3)
 ```
 
 Similarmente, se ilustran las personas con estado Defualt agrupadas por el puntaje obtenido:
 
-```{r, echo=F, message=F}
+```{r, echo=F, message=F,fig.cap = "Figura 10: Gráfico de barras personas Default por grupo",fig.pos='H',fig.align='center'}
 
-p <- ggplot(df_gt, aes(x = bin, y = pos)) + ylab("cantidad")
-p + geom_col(aes(x = bin, fill = factor(bin)))
+p <- ggplot(df_gt, aes(x = bin, y = pos)) + ylab("Cantidad")
+p + geom_col(aes(x = bin, fill = factor(bin)))+
+   geom_text(aes(label=pos), position = "stack", hjust = 0.5,vjust=-0.3, size=3)
 ```
 
 ## Conclusiones
