@@ -24,7 +24,7 @@ Por ultimo un aplicativo web mediante ShinyApps, que permita al usuario ingresar
 
 En este apartado se realizó todo lo referente a la depuración y limpieza de la base de datos, el procedimiento con los valores NA y la ingeniería de características para la creación de nuevas variables.
 
-[Limpieza en Python](https://github.com/DanielDi/Prediccion_Riesgo_Crediticio/blob/main/datos_juntos.feather)
+[Limpieza en Python](https://github.com/DanielDi/Prediccion_Riesgo_Crediticio/blob/main/procesamiento.md)
 
 ### Modelo
 
