@@ -35,7 +35,7 @@ En la construcción del modelo se diseñó un glm para hacer la predicción de s
 
 Aquí podrá ver todo lo referente al informe técnico del proyecto, la selección de variables, la construcción paso a paso del modelo, análisis descriptivo y argumentación del proyecto junto a las conclusiones del mismo.  
 
-[Informe Técnico](https://github.com/DanielDi/Prediccion_Riesgo_Crediticio/blob/main/InformeRiesgoCrediticio.Rmd)
+[Informe Técnico](https://rpubs.com/SebitasElCrack/907670)
 
 ### App
 
