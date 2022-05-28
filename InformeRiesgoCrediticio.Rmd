@@ -301,9 +301,9 @@ kable(gt[, c(2,4,5,6,7,8,10,11)])
 # Se prueba una predicción
 toPredcit <- data.frame(int_rate            = as.numeric(13.49), 
                         grade               = as.character("C"), 
-                        home_ownership      = as.character("OWN"),
+                        #home_ownership      = as.character("OWN"),
                         annual_inc          = as.numeric(49200),
-                        verification_status = as.integer(1),
+                        #verification_status = as.integer(1),
                         purpose             = as.character("other"), 
                         dti                 = as.numeric(20), 
                         inq_last_6mths      = as.numeric(1)
