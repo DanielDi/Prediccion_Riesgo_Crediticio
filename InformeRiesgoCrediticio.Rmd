@@ -1,6 +1,6 @@
 ---
 title: "Informe de Riesgo Crediticio"
-author: "Brayan Ortiz, Juan Peña, Thalea Hesse, Juan Falcon, Daniel Espinal"
+author: "Brayan M. Ortiz Fajardo, Juan F. Peña Tamayo, Thalea Marina Hesse, Juan Sebastiáb Falcón, Daniel Espinal Mosquera"
 date: "`r Sys.Date()`"
 output:
   html_document: default
@@ -373,9 +373,9 @@ p + geom_col(aes(x = bin, fill = factor(bin)))+
 
 ## Conclusiones
 
-+ conclusion 1
++ El modelo de regresión logística utilizado para predecir la probabilidad de que un usuario esté en **default**, sin ser demasiado deficiente, no tuvo el rendimiento que se esperaba obtener, con, por ejemplo, un área bajo la curva ROC del 0.6682. Dicho rendimiento se puede explicar, en parte, por lo poco equitativo que están esparcidos los datos entre los dos posibles valores de la variable objetivo, con 50.968 datos para clientes en estado **default** y 415.317 datos para la otra categoría y es posible que esta distribución no represente adecuadamente la probabilidad que estámos buscando, pues muchos de estos datos pertenecen a clientes que ya cumplieron con el pago total de la deuda. Cómo recomendación y trabajo futuro, se propone hacer un filtrado más detallado para la construcción de la variable objetivo buscando un mejor rendimiento en el modelo de regresión logística y, así, un mejor resultado para el ScoreCard. 
 
-+ PrediCrédito cumple de forma eficiente y satisfactoria sus funciones, logrando predecir de forma rápida y optima el ScoreCard de cada persona de acuerdo a su comportamiento financiero, además de compararlo globalmente con los prestatarios registrados de nuestra base de datos y obteniendo su percentil inmediato de acuerdo al puntaje obtenido, todo esto utilizando como preguntas las variables de riesgo más importantes para la predicción del mismo.
++ PrediCrédito cumple de forma eficiente y satisfactoria sus funciones, logrando un valor de un puntaje crediticio de forma rápida y optima, además de compararlo globalmente con los prestatarios registrados de nuestra base de datos y obteniendo su percentil inmediato de acuerdo al puntaje obtenido, todo esto utilizando como preguntas las variables de riesgo más importantes para la predicción del mismo.
 
 ## Bibliografía
 
