@@ -27,7 +27,7 @@ ui <- dashboardPage(
            "),
         HTML('<center><img src="score.png" height = 200, width = 350></center>'),
         h4("
-           PrediCrédito es la aplicación con la que la que podrás obtener la ScoreCard de tus potenciales clientes de forma rápida, eficiente y efectiva, además de la posibilidad de comparar que tan bueno o malo es el puntaje de cada cliente contra el comportamiento global de los ScoreCards de los prestatarios en nuestra base de datos de más de 450.000 registros, y así poder tomar la mejor decisión ante cada caso. 
+           PrediCrédito es la aplicación con la que podrás obtener la ScoreCard de tus potenciales clientes de forma rápida, eficiente y efectiva, además de la posibilidad de comparar que tan bueno o malo es el puntaje de cada cliente contra el comportamiento global de los ScoreCards de los prestatarios en nuestra base de datos de más de 450.000 registros, y así poder tomar la mejor decisión ante cada caso. 
       "),
       ),
       tabItem(tabName = "scorecard",
