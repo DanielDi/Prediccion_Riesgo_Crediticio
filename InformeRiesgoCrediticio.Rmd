@@ -1,6 +1,6 @@
 ---
 title: "Informe de Riesgo Crediticio"
-author: "Brayan Ortiz, Juan Peña, Thalea Hesse, Juan Falcon, Daniel Espinal"
+author: "Brayan M. Ortiz Fajardo, Juan F. Peña Tamayo, Thalea Marina Hesse, Juan Sebastiáb Falcón, Daniel Espinal Mosquera"
 date: "`r Sys.Date()`"
 output:
   html_document: default
@@ -24,6 +24,7 @@ library(formattable)
 library(RColorBrewer)
 library(ggthemes)
 library(cowplot)
+library(stringr)
 
 opts_chunk$set(echo = TRUE)
 ```
@@ -285,6 +286,29 @@ kable(head(valid_score_predicted))
 ```
 ### Variables que más afectan el perfil de riesgo
 
+Veamos los puntos asignados por el scorecard a cada **bin** de cada variable.
+
+```{r, echo=FALSE, message=FALSE}
+do.call("bind_rows", score_card_model) %>% 
+  slice(-1) %>% 
+  dplyr::select(-count, -count_distr, -neg, -pos, -posprob, -woe, -bin_iv, -total_iv, -breaks, -is_special_values) %>% 
+  mutate_if(is.numeric, function(x) {round(x, 3)}) %>% 
+  mutate(bin = bin %>% 
+           str_replace_all("\\%,%", " | ") %>%
+           str_replace_all("\\[", "From ") %>% 
+           str_replace_all("\\,", " to ") %>% 
+           str_replace_all("\\)", "")) -> info_for_predictors
+
+info_for_predictors %>% 
+  knitr::kable(col.names = c("Variable", "BIN", "Points"))
+```
+Analizando los puntos que fueron asignados a cada **bin** de cada variable, llegamos a lo siguiente:
+
+* Para la variable **int_rate** representa un riesgo bastante considerable un valor mayor o igual a 17, pero sus demás posibles valores no tienen el mismo comportamiento, siendo en la mayoría de los casos un valor positivo. Aunque esta variable ciertamente representa un riesgo, definitivamente no es la variable más riesgosa para el modelo.
+* Para la variable **grade** 5 de sus 7 posibles categorías representan un riesgo para el modelo, por lo que esta podría representar una de las variables más riesgosas.
+* Para las variable **porpuse** y **dti** se tienen puntajes (en valor absoluto) relativamente bajos por lo que, parece ser, no son las variables más riesgosas para el modelo.
+* Para la variable **inq_last_6mths** se tienen valores negativos en su mayoría, por lo que, parece ser, en el modelo se considera como una variable de alto riesgo para el puntaje crediticio.
+
 ### Resumen del modelo de scorecard
 
 Finalmente, se presenta el resumen de los puntajes que utilizó el modelo:
@@ -338,7 +362,7 @@ p + geom_col(aes(x = bin, fill = factor(bin)))+
    geom_text(aes(label=neg), position = "stack", hjust = 0.5,vjust=-0.3, size=3)
 ```
 
-Similarmente, se ilustran las personas con estado Defualt agrupadas por el puntaje obtenido:
+Similarmente, se ilustran las personas con estado Default agrupadas por el puntaje obtenido:
 
 ```{r, echo=F, message=F,fig.cap = "Figura 10: Gráfico de barras personas Default por grupo",fig.pos='H',fig.align='center'}
 
@@ -348,4 +372,22 @@ p + geom_col(aes(x = bin, fill = factor(bin)))+
 ```
 
 ## Conclusiones
+
++ El modelo de regresión logística utilizado para predecir la probabilidad de que un usuario esté en **default**, sin ser demasiado deficiente, no tuvo el rendimiento que se esperaba obtener, con, por ejemplo, un área bajo la curva ROC del 0.6682. Dicho rendimiento se puede explicar, en parte, por lo poco equitativo que están esparcidos los datos entre los dos posibles valores de la variable objetivo, con 50.968 datos para clientes en estado **default** y 415.317 datos para la otra categoría y es posible que esta distribución no represente adecuadamente la probabilidad que estámos buscando, pues muchos de estos datos pertenecen a clientes que ya cumplieron con el pago total de la deuda. Cómo recomendación y trabajo futuro, se propone hacer un filtrado más detallado para la construcción de la variable objetivo buscando un mejor rendimiento en el modelo de regresión logística y, así, un mejor resultado para el ScoreCard. 
+
++ PrediCrédito cumple de forma eficiente y satisfactoria sus funciones, logrando un valor de un puntaje crediticio de forma rápida y optima, además de compararlo globalmente con los prestatarios registrados de nuestra base de datos y obteniendo su percentil inmediato de acuerdo al puntaje obtenido, todo esto utilizando como preguntas las variables de riesgo más importantes para la predicción del mismo.
+
+## Bibliografía
+
++ [1] Practical Guide to Logistic Regression Analysis in R (2022). https://www.hackerearth.com/practice/machine-learning/machine-learning-algorithms/logistic-regression-analysis-r/tutorial/. 
+
++ [2] Gero Szepannek (2022). An Overview on the Landscape of R Packages for Open Source Scorecard Modelling. Stralsund University of Applied Sciences. https://www.researchgate.net/publication/359375581_An_Overview_on_the_Landscape_of_R_Packages_for_Open_Source_Scorecard_Modelling.
+
++ [3] Asad Mumtaz (2020). How to Develop a Credit Risk Model and Scorecard. https://towardsdatascience.com/how-to-develop-a-credit-risk-model-and-scorecard-91335fc01f03
+
++ [4] Tina | Kinden Property (2019). Intro to Credit Scorecard. https://towardsdatascience.com/intro-to-credit-scorecard-9afeaaa3725f
+
++ [5] Thomas Brock (2022). Credit Risk. https://www.investopedia.com/terms/c/creditrisk.asp. 
+
+
 
