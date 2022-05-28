@@ -39,7 +39,7 @@ def calc_dif_in_month(issue_d, first_d):
     return (issue_d[0] - first_d[0])*12 +  issue_d[1] - first_d[1]
 ```
 
-Lectura de los datos.
+## Lectura de los datos.
 ```python
 datos = pd.read_csv(ruta_datos + 'loan_data_2007_2014.csv', sep=',')
 ```
@@ -48,7 +48,13 @@ datos = pd.read_csv(ruta_datos + 'loan_data_2007_2014.csv', sep=',')
 ```python
 len(datos.columns)
 ```
-Output: 74
+
+
+
+
+    74
+
+
 
 Tenemos 74 columnas/variables en el dataset original.
 En estas variables se encuentran algunas que no contienen información relevante para nuestro caso, por esto mismo se realizará una preselección de posibles variables predictoras.
@@ -76,10 +82,16 @@ datos['good_bad'] = datos['loan_status'].apply(lambda x: 1
 ```python
 datos.good_bad.astype(str).str.get_dummies().sum()
 ```
-Output:
-1 - 50968
-0 - 415317
-dtype: int64
+
+
+
+
+    0    415317
+    1     50968
+    dtype: int64
+
+
+
 
 Dada la variable objetivo, tenemos un poco más de 50.000 datos de clientes que se encuentran en *default*.
 
@@ -115,7 +127,7 @@ datos['earliest_cr_line'] =  datos.earliest_cr_line.apply(convert_date)
 
 Se recalculan algunas variables a valores más dicientes numéricamente.
 ```python
-datos['sub_grade'] = datos.sub_grade.apply(convert_grade_to_num)
+datos['grade'] = datos.sub_grade.apply(convert_grade_to_num)
 
 datos['earliest_cr_line'] = datos.issue_d.combine(datos.earliest_cr_line, calc_dif_in_month)
 ```
@@ -139,37 +151,54 @@ Porcentage de NaN-values:
 datos.query('mths_since_last_major_derog != mths_since_last_major_derog', 
             inplace=False).loan_status.str.get_dummies().sum()/sum_per_status
 ```
-Output:
-Charged Off                                            0.812760
-Current                                                0.752237
-Default                                                0.742788
-Does not meet the credit policy. Status:Charged Off    1.000000
-Does not meet the credit policy. Status:Fully Paid     1.000000
-Fully Paid                                             0.826431
-In Grace Period                                        0.721869
-Late (16-30 days)                                      0.692939
-Late (31-120 days)                                     0.719130
+
+
+
+
+    Charged Off                                            0.812760
+    Current                                                0.752237
+    Default                                                0.742788
+    Does not meet the credit policy. Status:Charged Off    1.000000
+    Does not meet the credit policy. Status:Fully Paid     1.000000
+    Fully Paid                                             0.826431
+    In Grace Period                                        0.721869
+    Late (16-30 days)                                      0.692939
+    Late (31-120 days)                                     0.719130
+    dtype: float64
+
+
 
 ```python
 datos.query('mths_since_last_record != mths_since_last_record', 
             inplace=False).loan_status.str.get_dummies().sum()/sum_per_status
 ```
-Output:
-Charged Off                                            0.879435
-Current                                                0.851761
-Default                                                0.830529
-Does not meet the credit policy. Status:Charged Off    0.613666
-Does not meet the credit policy. Status:Fully Paid     0.715292
-Fully Paid                                             0.883490
-In Grace Period                                        0.856961
-Late (16-30 days)                                      0.831691
-Late (31-120 days)                                     0.840870
+
+
+
+
+    Charged Off                                            0.879435
+    Current                                                0.851761
+    Default                                                0.830529
+    Does not meet the credit policy. Status:Charged Off    0.613666
+    Does not meet the credit policy. Status:Fully Paid     0.715292
+    Fully Paid                                             0.883490
+    In Grace Period                                        0.856961
+    Late (16-30 days)                                      0.831691
+    Late (31-120 days)                                     0.840870
+    dtype: float64
+
+
 
 
 Se eliminan variables con poca información, información inútil o información que no podemos obtener de un cliente que aún no tenga contrato con la entidad.
 ```python
+# con solo una o cero opciones:
+ud = datos.nunique()
+relevant_Columns = ud[(ud>1)].index
+datos = datos[relevant_Columns]
+
 # sin informacion útil:
-datos.drop(['loan_status', 'url', 'id', 'member_id', 'title', 'desc', 'emp_title', 
+datos.drop(['url', 'id', 'member_id', 'title', 'desc', 'emp_title', 
             'sub_grade', 'zip_code', 'issue_d', 'collections_12_mths_ex_med', 
             'acc_now_delinq', 'pymnt_plan', 'term'], axis=1, inplace=True)
 
@@ -188,16 +217,39 @@ Estas son las variables resultantes:
 ```python
 datos.columns
 ```
-Output:
-Index(['loan_amnt', 'funded_amnt', 'funded_amnt_inv', 'int_rate',
-       'installment', 'grade', 'emp_length', 'home_ownership', 'annual_inc',
-       'verification_status', 'purpose', 'addr_state', 'dti', 'delinq_2yrs',
-       'earliest_cr_line', 'inq_last_6mths', 'mths_since_last_delinq',
-       'open_acc', 'pub_rec', 'total_acc', 'initial_list_status', 'good_bad'],
-      dtype='object')
 
 
-Para los siguientes valores tenemos datos faltantes:
+
+
+    Index(['loan_amnt', 'funded_amnt', 'funded_amnt_inv', 'int_rate',
+           'installment', 'grade', 'emp_length', 'home_ownership', 'annual_inc',
+           'verification_status', 'loan_status', 'purpose', 'addr_state', 'dti',
+           'delinq_2yrs', 'earliest_cr_line', 'inq_last_6mths',
+           'mths_since_last_delinq', 'open_acc', 'pub_rec', 'total_acc',
+           'initial_list_status', 'good_bad'],
+          dtype='object')
+
+
+Se grafican las correlaciones con las variables que quedan.
+
+```python
+df_corr = datos.corr()
+plt.figure(figsize=(200,200))
+sns.heatmap(df_corr, annot=True)
+```
+
+
+
+
+    <AxesSubplot:>
+
+
+
+
+    
+![png](output_34_1.png)
+
+Para los siguientes valores todavía tenemos datos faltantes:
 ```python
 missing_data = datos.isna().sum()
 missing_data = missing_data[missing_data != 0]
@@ -206,10 +258,30 @@ missing_data.columns = ["Qty"]
 missing_data["Missing data (%)"] = missing_data["Qty"]/datos.shape[0]*100
 missing_data
 ```
-Output:
-	Qty	Missing data (%)
-emp_length	21008	4.505399
-annual_inc	4	0.000858
+
+<div>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>Qty</th>
+      <th>Missing data (%)</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>emp_length</th>
+      <td>21008</td>
+      <td>4.505399</td>
+    </tr>
+    <tr>
+      <th>annual_inc</th>
+      <td>4</td>
+      <td>0.000858</td>
+    </tr>
+  </tbody>
+</table>
+</div>
 
 
 Se remplazan dichos datos faltantes por lo siguiente:
@@ -221,6 +293,35 @@ Se remplazan dichos datos faltantes por lo siguiente:
 ```python
 datos.emp_length.fillna(0, inplace=True)
 datos.annual_inc.fillna(datos.annual_inc.mean(), inplace=True)
+```
+
+## Distribución de los datos
+
+
+```python
+sum_per_status = datos.loan_status.astype(str).str.get_dummies().sum()
+colmap = ['red', 'blue', 'red', 'red', 'blue', 'blue', 'blue','blue', 'red']
+sum_per_status.plot(kind='bar', logy=True, color=colmap)
+
+```
+
+
+
+
+    <AxesSubplot:>
+
+
+
+
+    
+![png](output_42_1.png)
+    
+
+
+
+```python
+# drop loan_status
+datos.drop(['loan_status'], axis=1, inplace=True)
 ```
 
 Para terminar, se exportan los datos luego del proprocesamiento en la ruta indicada y en formato *feather* pues reduce notablemente el peso del archivo sin perder información.
