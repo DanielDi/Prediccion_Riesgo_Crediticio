@@ -24,6 +24,7 @@ library(formattable)
 library(RColorBrewer)
 library(ggthemes)
 library(cowplot)
+library(stringr)
 
 opts_chunk$set(echo = TRUE)
 ```
@@ -285,6 +286,29 @@ kable(head(valid_score_predicted))
 ```
 ### Variables que más afectan el perfil de riesgo
 
+Veamos los puntos asignados por el scorecard a cada **bin** de cada variable.
+
+```{r, echo=FALSE, message=FALSE}
+do.call("bind_rows", score_card_model) %>% 
+  slice(-1) %>% 
+  dplyr::select(-count, -count_distr, -neg, -pos, -posprob, -woe, -bin_iv, -total_iv, -breaks, -is_special_values) %>% 
+  mutate_if(is.numeric, function(x) {round(x, 3)}) %>% 
+  mutate(bin = bin %>% 
+           str_replace_all("\\%,%", " | ") %>%
+           str_replace_all("\\[", "From ") %>% 
+           str_replace_all("\\,", " to ") %>% 
+           str_replace_all("\\)", "")) -> info_for_predictors
+
+info_for_predictors %>% 
+  knitr::kable(col.names = c("Variable", "BIN", "Points"))
+```
+Analizando los puntos que fueron asignados a cada **bin** de cada variable, llegamos a lo siguiente:
+
+* Para la variable **int_rate** representa un riesgo bastante considerable un valor mayor o igual a 17, pero sus demás posibles valores no tienen el mismo comportamiento, siendo en la mayoría de los casos un valor positivo. Aunque esta variable ciertamente representa un riesgo, definitivamente no es la variable más riesgosa para el modelo.
+* Para la variable **grade** 5 de sus 7 posibles categorías representan un riesgo para el modelo, por lo que esta podría representar una de las variables más riesgosas.
+* Para las variable **porpuse** y **dti** se tienen puntajes (en valor absoluto) relativamente bajos por lo que, parece ser, no son las variables más riesgosas para el modelo.
+* Para la variable **inq_last_6mths** se tienen valores negativos en su mayoría, por lo que, parece ser, en el modelo se considera como una variable de alto riesgo para el puntaje crediticio.
+
 ### Resumen del modelo de scorecard
 
 Finalmente, se presenta el resumen de los puntajes que utilizó el modelo:
@@ -338,7 +362,7 @@ p + geom_col(aes(x = bin, fill = factor(bin)))+
    geom_text(aes(label=neg), position = "stack", hjust = 0.5,vjust=-0.3, size=3)
 ```
 
-Similarmente, se ilustran las personas con estado Defualt agrupadas por el puntaje obtenido:
+Similarmente, se ilustran las personas con estado Default agrupadas por el puntaje obtenido:
 
 ```{r, echo=F, message=F,fig.cap = "Figura 10: Gráfico de barras personas Default por grupo",fig.pos='H',fig.align='center'}
 
