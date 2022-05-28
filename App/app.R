@@ -17,12 +17,15 @@ ui <- dashboardPage(
   dashboardBody(
     tabItems(
       tabItem(tabName = "descripcion",
-              titlePanel(h1("PrediCrédito")),
+              titlePanel(h1("PrediCrédito", align = "center")),
+              
+              #img(src="score.png", height = 200, width = 300),
         h4("Las empresas dedicadas a las finanzas y, en particular, las prestamistas buscan métricas que les ayuden a evaluar si un cliente es un riesgo potencial para su negocio.
         Estas métricas se pueden resumir en el ScoreCard, la cual presenta rangos de riesgo con base a los criterios críticos de cada empresa.
         Un buen puntaje crediticio es fundamental a la hora de tomar decisiones sobre quiénes son los clientes más aptos para la aprobación de prestamos
         financiamiento u otros recursos por parte de las empresas. Debido a esto, conocerlo y utilizarlo es la mejor decisión para el futuro de la empresa.
            "),
+        HTML('<center><img src="score.png" height = 200, width = 350></center>'),
         h4("
            PrediCrédito es la aplicación con la que la que podrás obtener la ScoreCard de tus potenciales clientes de forma rápida, eficiente y efectiva, además de la posibilidad de comparar que tan bueno o malo es el puntaje de cada cliente contra el comportamiento global de los ScoreCards de los prestatarios en nuestra base de datos de más de 450.000 registros, y así poder tomar la mejor decisión ante cada caso. 
       "),

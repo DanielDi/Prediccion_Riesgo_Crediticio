@@ -349,3 +349,21 @@ p + geom_col(aes(x = bin, fill = factor(bin)))+
 
 ## Conclusiones
 
++ conclusion 1
+
++ PrediCrédito cumple de forma eficiente y satisfactoria sus funciones, logrando predecir de forma rápida y optima el ScoreCard de cada persona de acuerdo a su comportamiento financiero, además de compararlo globalmente con los prestatarios registrados de nuestra base de datos y obteniendo su percentil inmediato de acuerdo al puntaje obtenido, todo esto utilizando como preguntas las variables de riesgo más importantes para la predicción del mismo.
+
+## Bibliografía
+
++ [1] Practical Guide to Logistic Regression Analysis in R (2022). https://www.hackerearth.com/practice/machine-learning/machine-learning-algorithms/logistic-regression-analysis-r/tutorial/. 
+
++ [2] Gero Szepannek (2022). An Overview on the Landscape of R Packages for Open Source Scorecard Modelling. Stralsund University of Applied Sciences. https://www.researchgate.net/publication/359375581_An_Overview_on_the_Landscape_of_R_Packages_for_Open_Source_Scorecard_Modelling.
+
++ [3] Asad Mumtaz (2020). How to Develop a Credit Risk Model and Scorecard. https://towardsdatascience.com/how-to-develop-a-credit-risk-model-and-scorecard-91335fc01f03
+
++ [4] Tina | Kinden Property (2019). Intro to Credit Scorecard. https://towardsdatascience.com/intro-to-credit-scorecard-9afeaaa3725f
+
++ [5] Thomas Brock (2022). Credit Risk. https://www.investopedia.com/terms/c/creditrisk.asp. 
+
+
+
