@@ -1,5 +1,5 @@
 # Predicción Riesgo Crediticio
-Sean bienvenidos al repositorio de x, en el cual podrán encontrar todas las herramientas y elementos que se utilizaron en el proceso de desarrollo de este proyecto. Los apartados más importantes del proyecto se encuentran en la siguiente tabla de contenido.
+Sean bienvenidos al repositorio de PrediCrédito, en el cual podrán encontrar todas las herramientas y elementos que se utilizaron en el proceso de desarrollo de este proyecto. Los apartados más importantes del proyecto se encuentran en la siguiente tabla de contenido.
 ## Tabla de Contenido
 
 - [Introducción](#introducción)
@@ -39,6 +39,6 @@ Aquí podrá ver todo lo referente al informe técnico del proyecto, la selecci�
 
 ### App
 
-En este apartado podra encontrar todo lo relacionado con el desarrollo y ejecucion de la aplicacion web oficial de x
+En este apartado podra encontrar todo lo relacionado con el desarrollo y ejecucion de la aplicacion web oficial de PrediCrédito
 
 [App](https://sebastian-falcon.shinyapps.io/PrediCredito/)
