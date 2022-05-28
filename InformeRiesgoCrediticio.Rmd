@@ -295,6 +295,37 @@ gt <- gains_table(valid_score_predicted$score, valid$good_bad, bin_num = 8)
 kable(gt[, c(2,4,5,6,7,8,10,11)])
 
 ```
+```{r, echo=FALSE, message=FALSE}
+# Exportar datos necesarios a la App
+
+# Se prueba una predicción
+toPredcit <- data.frame(int_rate            = as.numeric(13.49), 
+                        grade               = as.character("C"), 
+                        home_ownership      = as.character("OWN"),
+                        annual_inc          = as.numeric(49200),
+                        verification_status = as.integer(1),
+                        purpose             = as.character("other"), 
+                        dti                 = as.numeric(20), 
+                        inq_last_6mths      = as.numeric(1)
+                        # earliest_cr_line  = as.integer(earliest_cr_days)
+                        )
+
+newScore <- scorecard_ply(toPredcit, score_card_model, only_total_score = FALSE)
+
+# Se exporta el modelo
+save(file="App/data/scorecardModelo.RData",
+                              list=c("score_card_model"))
+
+# Para comparar contra la población se junta el train y el valid y se le asigna
+# el score a todas las filas
+completeDF <- rbind(train, valid)
+
+allScores <- scorecard_ply(completeDF, score_card_model, only_total_score = TRUE)
+
+save(file="App/data/allScores.RData",
+                              list=c("allScores"))
+
+```
 
 Se ilustra por medio de un Gráfico de barras de la cantidad de personas (las no Default) agrupadas por el puntaje obtenido: 
 
