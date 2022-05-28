@@ -35,10 +35,10 @@ En la construcción del modelo se diseñó un glm para hacer la predicción de s
 
 Aquí podrá ver todo lo referente al informe técnico del proyecto, la selección de variables, la construcción paso a paso del modelo, análisis descriptivo y argumentación del proyecto junto a las conclusiones del mismo.  
 
-[Informe Técnico](https://github.com/DanielDi/Prediccion_Riesgo_Crediticio/blob/main/datos_juntos.feather)
+[Informe Técnico](https://github.com/DanielDi/Prediccion_Riesgo_Crediticio/blob/main/InformeRiesgoCrediticio.Rmd)
 
 ### App
 
 En este apartado podra encontrar todo lo relacionado con el desarrollo y ejecucion de la aplicacion web oficial de x
 
-[App](https://github.com/DanielDi/Prediccion_Riesgo_Crediticio/blob/main/datos_juntos.feather)
+[App](https://sebastian-falcon.shinyapps.io/PrediCredito/)
