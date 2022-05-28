@@ -1,0 +1,13 @@
+name: PrediCredito
+title: PrediCredito
+username:
+account: sebastian-falcon
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 6387527
+bundleId: 5953957
+url: https://sebastian-falcon.shinyapps.io/PrediCredito/
+when: 1653712177.8929
+lastSyncTime: 1653712177.8929
+asMultiple: FALSE
+asStatic: FALSE

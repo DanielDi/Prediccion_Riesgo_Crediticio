@@ -139,7 +139,7 @@ ui <- dashboardPage(
                                     ),
                                     h3("RPubs"),
                                     tags$a(
-                                      href="https://github.com/DanielDi/Prediccion_Riesgo_Crediticio", 
+                                      href="https://rpubs.com/SebitasElCrack/907670", 
                                       tags$img(src="rp2.png",height = 100, width = 100, 
                                                title="Link al informe")
                                     ),
