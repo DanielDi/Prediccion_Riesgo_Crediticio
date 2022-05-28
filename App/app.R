@@ -17,7 +17,15 @@ ui <- dashboardPage(
   dashboardBody(
     tabItems(
       tabItem(tabName = "descripcion",
-        h2("Colocar descripción acá")
+              titlePanel(h1("PrediCrédito")),
+        h4("Las empresas dedicadas a las finanzas y, en particular, las prestamistas buscan métricas que les ayuden a evaluar si un cliente es un riesgo potencial para su negocio.
+        Estas métricas se pueden resumir en el ScoreCard, la cual presenta rangos de riesgo con base a los criterios críticos de cada empresa.
+        Un buen puntaje crediticio es fundamental a la hora de tomar decisiones sobre quiénes son los clientes más aptos para la aprobación de prestamos
+        financiamiento u otros recursos por parte de las empresas. Debido a esto, conocerlo y utilizarlo es la mejor decisión para el futuro de la empresa.
+           "),
+        h4("
+           PrediCrédito es la aplicación con la que la que podrás obtener la ScoreCard de tus potenciales clientes de forma rápida, eficiente y efectiva, además de la posibilidad de comparar que tan bueno o malo es el puntaje de cada cliente contra el comportamiento global de los ScoreCards de los prestatarios en nuestra base de datos de más de 450.000 registros, y así poder tomar la mejor decisión ante cada caso. 
+      "),
       ),
       tabItem(tabName = "scorecard",
               fluidRow(
@@ -81,12 +89,79 @@ ui <- dashboardPage(
                 )
       ),
       tabItem(tabName = "recursos",
-              h2("Colocar descripción acá"),
-              tags$a(
-                href="https://github.com/DanielDi/Prediccion_Riesgo_Crediticio", 
-                tags$img(src="github_image.png", 
-                         title="Link al repositorio en github")
+              tabPanel("Acerca de Nosotros",
+                       fluidPage(
+                         titlePanel("Integrantes"),
+                         fluidRow(
+                           column(4,
+                                  wellPanel(
+                                    h3("Brayan M. Ortiz Fajardo"),
+                                    h4("bortizf@unal.edu.co"),
+                                    h5("Ingeniería de Sistemas e Informática")
+                                  )
+                           ),
+                           column(4,
+                                  wellPanel(
+                                    h3("Daniel Espinal Mosquera"),
+                                    h4("despinalm@unal.edu.co"),
+                                    h5("Ingeniería de Sistemas e Informática")
+                                  )
+                           ),
+                           
+                           column(4,
+                                  wellPanel(
+                                    h3("Juan Sebastián Falcón"),
+                                    h4("jfalcong@unal.edu.co"),
+                                    h5("Estadística")
+                                  )
+                           ),
+                         ),
+                         fluidRow(
+                           column(4,
+                                  wellPanel(
+                                    h3("Juan F. Peña Tamayo"),
+                                    h4("jpenat@unal.edu.co"),
+                                    h5("Ingeniería de Sistemas e Informática")
+                                  )
+                           ),
+                           column(4,
+                                  wellPanel(
+                                    h3("Thalea Marina Hesse"),
+                                    h4("thesse@unal.edu.co"),
+                                    h5("Ciencia de Datos")
+                                  )
+                           )
+                         ),
+                         
+                         fluidRow(
+                           column(6,
+                                  wellPanel(
+                                    h3("Github"),
+                                    tags$a(
+                                      href="https://github.com/DanielDi/Prediccion_Riesgo_Crediticio", 
+                                      tags$img(src="github_image.png", 
+                                               title="Link al repositorio en github")
+                                    ),
+                                    h3("RPubs"),
+                                    tags$a(
+                                      href="https://github.com/DanielDi/Prediccion_Riesgo_Crediticio", 
+                                      tags$img(src="rp2.png",height = 100, width = 100, 
+                                               title="Link al informe")
+                                    ),
+                                  )
+                           ),
+                           column(6,
+                                  wellPanel(
+                                    h3("Vídeo"),
+                                    HTML('<iframe width="350" height="250" src="https://www.youtube.com/embed/B_oZs7OAYV0" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>')
+                                  )
+                           )
+                         )
+                       )
               )
+              
+              
+              
       )
     )
   )
