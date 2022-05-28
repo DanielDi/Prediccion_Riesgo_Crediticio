@@ -76,9 +76,9 @@ datos['good_bad'] = datos['loan_status'].apply(lambda x: 1
 ```python
 datos.good_bad.astype(str).str.get_dummies().sum()
 ```
-Output: 
-1     50968
-0    415317
+Output:
+1 - 50968
+0 - 415317
 dtype: int64
 
 Dada la variable objetivo, tenemos un poco más de 50.000 datos de clientes que se encuentran en *default*.
